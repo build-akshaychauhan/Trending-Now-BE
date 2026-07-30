@@ -668,6 +668,7 @@ export const HANDLES = {
     "bhuvan",
     "bbki vines",
   ],
+  Purav_Jha: ["purav jha", "purav"],
 };
 
 export const BLOCKED_WORDS = [

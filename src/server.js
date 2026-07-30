@@ -19,6 +19,8 @@ import {
 } from "./scraper/socialMediaScraper.js";
 import { cacheWarming } from "./cache/cacheWarming.js";
 import versionCheck from "./middleware/versionChecker.js";
+import genre from "./routes/genre.js";
+import creatorsRank from "./routes/creatorsRank.js";
 
 dotenv.config();
 
@@ -30,8 +32,10 @@ app.use("/api", versionCheck);
 
 app.use("/health", healthRoutes);
 app.use("/api/feed", feedRoutes);
+app.use("/api/genre", genre);
 app.use("/media", express.static(path.join(process.cwd(), "media")));
 app.use("/api/user", userRoutes);
+app.use("/api/rank", creatorsRank);
 app.use("/api/creator", normalizeCreator);
 
 app.get("/proxy", async (req, res) => {

@@ -8,6 +8,7 @@ import User from "../models/User.js";
 import mongoose from "mongoose";
 import Comment from "../models/Comment.js";
 import ArticleStore from "../models/ArticleStore.js";
+import Creator from "../models/Creator.js";
 
 // REGISTER OR LOGIN
 export const createOrLoginUser = async (req, res) => {
@@ -457,6 +458,123 @@ export const deleteComment = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: err.message,
+    });
+  }
+};
+
+export const addFavouriteCreator = async (req, res) => {
+  try {
+    const { creatorId } = req.body;
+    const firebaseUid = req.auth_firebase_uid;
+
+    if (!mongoose.Types.ObjectId.isValid(creatorId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid creator id",
+      });
+    }
+
+    const creatorExists = await Creator.exists({ _id: creatorId });
+
+    if (!creatorExists) {
+      return res.status(404).json({
+        success: false,
+        message: "Creator not found",
+      });
+    }
+
+    const user = await User.findOneAndUpdate(
+      { firebaseUid },
+      {
+        $addToSet: {
+          favoriteCreators: creatorId,
+        },
+      },
+      {
+        returnDocument: "after",
+      },
+    ).populate("favoriteCreators");
+
+    return res.json({
+      success: true,
+      message: "Creator added to favourites",
+      data: user.favoriteCreators,
+    });
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const removeFavouriteCreator = async (req, res) => {
+  try {
+    const { creatorId } = req.body;
+    const firebaseUid = req.auth_firebase_uid;
+
+    if (!mongoose.Types.ObjectId.isValid(creatorId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid creator id",
+      });
+    }
+
+    const user = await User.findOneAndUpdate(
+      { firebaseUid },
+      {
+        $pull: {
+          favoriteCreators: creatorId,
+        },
+      },
+      {
+        returnDocument: "after",
+      },
+    ).populate("favoriteCreators");
+
+    return res.json({
+      success: true,
+      message: "Creator removed from favourites",
+      data: user.favoriteCreators,
+    });
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const getFavouriteCreators = async (req, res) => {
+  try {
+    const firebaseUid = req.auth_firebase_uid;
+
+    const user = await User.findOne({ firebaseUid }).populate(
+      "favoriteCreators",
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      count: user.favoriteCreators.length,
+      data: user.favoriteCreators,
+    });
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
     });
   }
 };

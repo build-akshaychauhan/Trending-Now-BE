@@ -62,6 +62,13 @@ const UserSchema = new mongoose.Schema(
       },
     ],
 
+    favoriteCreators: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Creator",
+      },
+    ],
+
     // bio: {
     //   type: String,
     //   maxlength: 250,

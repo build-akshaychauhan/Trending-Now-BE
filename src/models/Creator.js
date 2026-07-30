@@ -18,6 +18,15 @@ const CreatorSchema = new mongoose.Schema(
 
     image: { type: String },
     accentColor: { type: String },
+
+    suggestionImage: { type: String },
+
+    genres: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Genre",
+      },
+    ],
   },
   {
     timestamps: true,

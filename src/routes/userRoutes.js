@@ -9,6 +9,9 @@ import {
   refreshToken,
   updateUser,
   createComment,
+  addFavouriteCreator,
+  removeFavouriteCreator,
+  getFavouriteCreators,
 } from "../controllers/userprofileControls.js";
 
 import { authMiddleware } from "../middleware/authVerify.js";
@@ -30,5 +33,11 @@ router.post("/comment", authMiddleware, createComment);
 router.get("/comment/:postId", getComments);
 
 router.delete("/comment", authMiddleware, deleteComment);
+
+router.post("/favorite-creators", authMiddleware, addFavouriteCreator);
+
+router.delete("/favorite-creators", authMiddleware, removeFavouriteCreator);
+
+router.get("/favorite-creators", authMiddleware, getFavouriteCreators);
 
 export default router;
