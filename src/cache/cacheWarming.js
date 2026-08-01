@@ -1,7 +1,8 @@
+import { creatorFeedStackCache } from "../functions/creatorFeedStackCache.js";
 import { creatorPageFeed } from "../functions/creatorPageFeed.js";
-import { homePageFeed } from "../functions/homePageFeed.js";
 import Creator from "../models/Creator.js";
 import { CACHING_KEYS } from "./cacheKeys.js";
+import cache from "./caching.js";
 
 export async function cacheWarming() {
   console.info("cache warming started...");
@@ -9,7 +10,7 @@ export async function cacheWarming() {
   try {
     // Home Page Feed warming up
     const key1 = CACHING_KEYS.HomepageFeedKey;
-    await homePageFeed(key1, true);
+    await creatorFeedStackCache(key1, true);
 
     // Creators Page Feed warming up
     const topInfluencers = (
@@ -25,3 +26,16 @@ export async function cacheWarming() {
     console.error("cache warming failed !!", error);
   }
 }
+
+export const printCache = () => {
+  console.log("\n===== CACHE DATA =====");
+
+  const keys = cache.keys();
+
+  for (const key of keys) {
+    console.log(`\nKey: ${key}`);
+    console.dir(cache.get(key), { depth: null, colors: true });
+  }
+
+  console.log("\n======================\n");
+};

@@ -300,7 +300,6 @@ export const CREATOR_NAMES = [
       "samay raina FIR",
       "samay raina court case",
       "samay raina legal notice",
-      "indias got latent",
       "samay raina apology",
       "samay raina comeback",
     ],

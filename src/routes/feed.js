@@ -10,17 +10,26 @@ import SocialAllDump from "../models/SocialAllDump.js";
 import ArticleStore from "../models/ArticleStore.js";
 import { collectPosts, StackPostMaker } from "../utils/feedHelper.js";
 import { CACHING_KEYS } from "../cache/cacheKeys.js";
-import { homePageFeed } from "../functions/homePageFeed.js";
+import { homePageFeed, unAuthHomePageFeed } from "../functions/homePageFeed.js";
+import { optionalAuthMiddleware } from "../middleware/authVerify.js";
 
 const router = express.Router();
 
 // FEED API
-router.get("/homepage", async (req, res) => {
+router.get("/homepage", optionalAuthMiddleware, async (req, res) => {
+  const firebase_uid = req.auth_firebase_uid || "";
   const key = CACHING_KEYS.HomepageFeedKey;
-  const response = await homePageFeed(key);
+
+  let response = await unAuthHomePageFeed(key);
+
+  if (firebase_uid) {
+    response = await homePageFeed(key, firebase_uid);
+  }
+
   if (!response.success) {
     return res.status(500).json(response);
   }
+
   return res.status(200).json(response);
 });
 
