@@ -1142,9 +1142,9 @@ export async function creatorTrendScoreCalc() {
       ]);
 
       score = score + articlesCount * 10;
-      score = score + socialPostsCount[0].instagram * 6;
-      score = score + socialPostsCount[0].twitter * 8;
-      score = score + socialPostsCount[0].youtube * 4;
+      score = score + (socialPostsCount[0]?.instagram || 0) * 6;
+      score = score + (socialPostsCount[0]?.twitter || 0) * 8;
+      score = score + (socialPostsCount[0]?.youtube || 0) * 4;
 
       await Creator.findOneAndUpdate(
         {
