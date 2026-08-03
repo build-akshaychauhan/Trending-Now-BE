@@ -88,6 +88,10 @@ export async function authHomeFeed(creator) {
         item.twPost?.media?.[0]?.url ||
         item.shortPost?.thumbnailUrl,
       type: item.stackCategory,
+      posts:
+        sortedTopics
+          .map((s) => s.label == item.topicLabel && s.posts)
+          .filter(Boolean)[0] || [],
     }),
   );
 
