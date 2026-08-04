@@ -1,6 +1,6 @@
 import express from "express";
 import { optionalAuthMiddleware } from "../middleware/authVerify.js";
-import { creatorFeedHomescreen } from "../functions/creatorpagehomescreen.js";
+import { creatorFeedHomescreen } from "../functions/creatorPageHomescreen.js";
 
 const router = express.Router();
 
