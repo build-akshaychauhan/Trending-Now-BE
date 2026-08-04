@@ -1073,3 +1073,99 @@ export function StackPostMaker(creatorSlug, sortedTopics) {
   built.sort((a, b) => b.topicCount - a.topicCount);
   return built;
 }
+
+export function CreatorPostMaker(creatorSlug, sortedTopics) {
+  if (!sortedTopics.length) return;
+
+  const built = [];
+
+  for (const topic of sortedTopics) {
+    // Count categories
+
+    const categoryCounts = topic.posts.reduce((acc, post) => {
+      const category = post.category;
+      if (category) {
+        acc[category] = (acc[category] || 0) + 1;
+      }
+      return acc;
+    }, {});
+
+    // Find category with maximum count
+    const dominantCategory = Object.keys(categoryCounts).reduce(
+      (a, b) => (categoryCounts[a] > categoryCounts[b] ? a : b),
+      Object.keys(categoryCounts)[0],
+    );
+
+    // Only keep posts from dominant category
+    const filteredPosts = topic.posts.filter(
+      (p) => p.category === dominantCategory,
+    );
+
+    const newsItems = filteredPosts
+      .filter((p) => p.platform === "news")
+      .sort(
+        (a, b) =>
+          new Date(b.publishedAt || b.scrapedAt || 0) -
+          new Date(a.publishedAt || a.scrapedAt || 0),
+      )
+      .slice(0, 2);
+
+    const igPost =
+      filteredPosts
+        .filter((p) => p.platform === "instagram")
+        .sort(
+          (a, b) =>
+            (b.normalizedText?.replace(/\s+/g, "").length || 0) -
+            (a.normalizedText?.replace(/\s+/g, "").length || 0),
+        )[0] || null;
+
+    const twPost =
+      filteredPosts
+        .filter((p) => p.platform === "twitter")
+        .sort(
+          (a, b) =>
+            (b.normalizedText?.replace(/\s+/g, "").length || 0) -
+            (a.normalizedText?.replace(/\s+/g, "").length || 0),
+        )[0] || null;
+
+    const shortPost =
+      filteredPosts
+        .filter((p) => p.platform === "youtube_shorts")
+        .sort(
+          (a, b) =>
+            (b.normalizedText?.replace(/\s+/g, "").length || 0) -
+            (a.normalizedText?.replace(/\s+/g, "").length || 0),
+        )[0] || null;
+
+    if (!newsItems.length && !igPost && !twPost && !shortPost) {
+      ++i;
+      continue;
+    }
+
+    built.push({
+      creatorSlug,
+
+      topicSlug: topic.slug,
+      topicLabel: topic.label,
+      topicCount: topic.posts.length,
+
+      newsItems,
+      igPost,
+      twPost,
+      shortPost,
+
+      topTopics: [
+        {
+          slug: topic.slug,
+          label: topic.label,
+          count: topic.posts.length,
+        },
+      ],
+
+      stackCategory: dominantCategory,
+    });
+  }
+
+  built.sort((a, b) => b.topicCount - a.topicCount);
+  return built;
+}

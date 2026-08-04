@@ -10,7 +10,9 @@ export async function cacheWarming() {
   try {
     // Home Page Feed warming up
     const key1 = CACHING_KEYS.HomepageFeedKey;
-    await creatorFeedStackCache(key1, true);
+    const key3 = CACHING_KEYS.BuzzingFeedKey;
+
+    await creatorFeedStackCache(key1, key3, true);
 
     // Creators Page Feed warming up
     const topInfluencers = (

@@ -5,25 +5,6 @@ import SocialDumpStore from "../models/SocialDumpStore.js";
 import { collectPosts, StackPostMaker } from "./feedHelper.js";
 import { normaliseCreator } from "./normalizer.js";
 
-function getUniqueCreatorsWithHighestTopic(data) {
-  const creators = new Map();
-  if (!data) return [];
-
-  for (const item of data) {
-    const creator = item.creatorSlug;
-    const count = item.topTopics?.[0]?.count || 0;
-
-    if (
-      !creators.has(creator) ||
-      count > (creators.get(creator).topTopics?.[0]?.count || 0)
-    ) {
-      creators.set(creator, item);
-    }
-  }
-
-  return [...creators.values()];
-}
-
 export async function authHomeFeed(creator) {
   const topics = {};
 
@@ -74,27 +55,6 @@ export async function authHomeFeed(creator) {
 
   const PostStack = await StackPostMaker(creator.name, sortedTopics);
 
-  const BuzzingCards = getUniqueCreatorsWithHighestTopic(PostStack).map(
-    (item) => ({
-      id: `${item.creatorSlug}-${item.topicSlug}`,
-      creator: item?.creatorSlug?.replaceAll("_", " "),
-      topic: item.topicLabel,
-      count: item.topicCount,
-      headline: item.headline,
-      image:
-        item.igPost?.media?.[0]?.url ||
-        item.newsItems?.[0]?.urlToImage ||
-        item.twPost?.media?.[0]?.thumbnail ||
-        item.twPost?.media?.[0]?.url ||
-        item.shortPost?.thumbnailUrl,
-      type: item.stackCategory,
-      posts:
-        sortedTopics
-          .map((s) => s.label == item.topicLabel && s.posts)
-          .filter(Boolean)[0] || [],
-    }),
-  );
-
   const headline =
     sortedTopics[0]?.posts[0]?.normalizedText.length > 80
       ? sortedTopics[0]?.posts[0]?.normalizedText.slice(0, 80) + "..."
@@ -117,6 +77,5 @@ export async function authHomeFeed(creator) {
     topHeadline: topHeadline,
     topicSlug: topicSlug,
     PostStack: PostStack,
-    BuzzingCards: BuzzingCards,
   };
 }

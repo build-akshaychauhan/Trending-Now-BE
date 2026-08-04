@@ -874,6 +874,49 @@ function clusterAndFilterPosts(
   };
 }
 
+export const parseCount = (value) => {
+  if (value == null) return 0;
+  const str = String(value).trim().toLowerCase().replace(/,/g, "");
+  const num = parseFloat(str);
+  if (Number.isNaN(num)) return 0;
+  if (str.endsWith("k")) return Math.round(num * 1_000);
+  if (str.endsWith("m")) return Math.round(num * 1_000_000);
+  if (str.endsWith("b")) return Math.round(num * 1_000_000_000);
+  return Math.round(num);
+};
+
+const getLikes = (p) =>
+  parseCount(
+    p?.likes ??
+      p?.likeCount ??
+      p?.favorite_count ??
+      p?.favoriteCount ??
+      p?.statistics?.likeCount ??
+      0,
+  );
+
+const getViews = (p) =>
+  parseCount(
+    p?.views ??
+      p?.viewCount ??
+      p?.playCount ??
+      p?.video_views ??
+      p?.impressions ??
+      p?.statistics?.viewCount ??
+      0,
+  );
+
+export const getScore = (p) => getLikes(p) + getViews(p);
+
+export const getTimestamp = (p) => {
+  if (p?.publishedAt) return Date.parse(p.publishedAt);
+  if (p?.scrapedAt) return Date.parse(p.scrapedAt);
+  if (p?.unixDate) return p.unixDate * 1000;
+  return 0;
+};
+
+export const byLatest = (a, b) => getTimestamp(b) - getTimestamp(a);
+
 // ─── Main Normaliser ────────────────────────────────────────────────────────
 
 export function normaliseCreator(
@@ -1050,4 +1093,39 @@ export function normaliseCreator(
       },
     },
   };
+}
+
+export function normaliseFavoriteCreator(creatorConfig = {}, rawDocs = []) {
+  if (!Array.isArray(rawDocs) || rawDocs.length === 0) {
+    return null;
+  }
+
+  // Merge all social documents
+  const merged = {
+    creatorName: creatorConfig?.creatorName,
+
+    instagram: rawDocs.flatMap((d) => d?.instagram || []),
+
+    youtubeShorts: rawDocs.flatMap((d) => d?.youtubeShorts || []),
+    twitter: rawDocs.flatMap((d) => d?.twitter || []),
+  };
+
+  const dedupeByKey = (arr, key) =>
+    Object.values(
+      Object.fromEntries(
+        arr.map((item, index) => [item?.[key] || `fallback_${index}`, item]),
+      ),
+    );
+
+  let instagram = normaliseInstagram(dedupeByKey(merged.instagram, "postId"));
+
+  let twitter = normaliseTwitter(dedupeByKey(merged.twitter, "tweetId"));
+
+  let youtubeShorts = normaliseYouTubeShorts(
+    dedupeByKey(merged.youtubeShorts, "url"),
+  );
+
+  let allPosts = [...instagram, ...youtubeShorts, ...twitter];
+
+  return allPosts;
 }
