@@ -152,7 +152,7 @@ const runDailyAt7AM = () => {
   }, initialDelay);
 };
 
-runDailyAt7AM();
+// runDailyAt7AM();
 
 // ----------- Weekly Scheduler (7AM - IST / 1AM - UTC) --------------
 
@@ -192,16 +192,17 @@ const runEveryFridayAt7AM = () => {
   }, initialDelay);
 };
 
-runEveryFridayAt7AM();
+// runEveryFridayAt7AM();
 
 // ----------- Testing function calls --------------
 
-await cacheWarming();
-
 // await syncNewsFeed();
-// syncInstagramMedia().catch(console.error);
-// await syncCreatorFollowers();
 // await YoutubeShorts();
 // await InstagramPosts();
 // await TwitterPosts();
-// await creatorTrendScoreCalc()
+
+// syncInstagramMedia().catch(console.error);
+// await syncCreatorFollowers();
+// await creatorTrendScoreCalc();
+
+await cacheWarming();
