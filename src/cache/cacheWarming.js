@@ -15,6 +15,7 @@ export async function cacheWarming() {
 
     await creatorFeedStackCache(key1, key2, key3, true);
 
+    printCache();
     console.info("cache warming completed.");
   } catch (error) {
     console.error("cache warming failed !!", error);
@@ -28,7 +29,7 @@ export const printCache = () => {
 
   for (const key of keys) {
     console.log(`\nKey: ${key}`);
-    console.dir(cache.get(key), { depth: null, colors: true });
+    // console.dir(cache.get(key), { depth: null, colors: true });
   }
 
   console.log("\n======================\n");

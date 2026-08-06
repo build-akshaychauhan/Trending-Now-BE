@@ -24,7 +24,6 @@ export async function creatorFeedStackCache(
         ]);
 
         cache.set(key1 + creator.name, creatorFeed);
-        cache.set(key2 + creator.name, creatorPage);
         cache.set(key3 + creator.name, buzzingFeed);
       }),
     );
