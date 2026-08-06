@@ -42,6 +42,12 @@ const RAPIDAPI_KEYS = [
   process.env.RAPID_API_KEY2,
   process.env.RAPID_API_KEY3,
   process.env.RAPID_API_KEY4,
+  process.env.RAPID_API_KEY5,
+  process.env.RAPID_API_KEY6,
+  process.env.RAPID_API_KEY7,
+  process.env.RAPID_API_KEY8,
+  process.env.RAPID_API_KEY9,
+  process.env.RAPID_API_KEY10,
 ].filter(Boolean);
 
 async function rapidApiFetch(url, options = {}) {
