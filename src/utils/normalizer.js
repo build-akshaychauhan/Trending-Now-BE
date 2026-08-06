@@ -1106,7 +1106,6 @@ export function normaliseFavoriteCreator(creatorConfig = {}, rawDocs = []) {
 
     instagram: rawDocs.flatMap((d) => d?.instagram || []),
 
-    youtubeShorts: rawDocs.flatMap((d) => d?.youtubeShorts || []),
     twitter: rawDocs.flatMap((d) => d?.twitter || []),
   };
 
@@ -1121,11 +1120,9 @@ export function normaliseFavoriteCreator(creatorConfig = {}, rawDocs = []) {
 
   let twitter = normaliseTwitter(dedupeByKey(merged.twitter, "tweetId"));
 
-  let youtubeShorts = normaliseYouTubeShorts(
-    dedupeByKey(merged.youtubeShorts, "url"),
-  );
+  let allPosts = [...instagram, ...twitter];
 
-  let allPosts = [...instagram, ...youtubeShorts, ...twitter];
+  allPosts = allPosts.filter((post) => post.isVideo === true);
 
   return allPosts;
 }

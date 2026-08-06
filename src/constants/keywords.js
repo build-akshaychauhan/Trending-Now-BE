@@ -291,7 +291,6 @@ export const CREATOR_NAMES = [
   {
     name: "Samay_Raina",
     keywords: [
-      "samay",
       "samay raina",
       "india's got latent",
       "indias got latent",
@@ -375,8 +374,7 @@ export const CREATOR_NAMES = [
       "varun yadav podcast",
       "varun yadav latest update",
       "varun yadav breaking news",
-      "Varun Yadav laila",
-      "laila",
+      "ranveer viral clip",
     ],
     twitterKeyword: ["Varun Yadav latest news"],
     channelName: "@VarunYadavLailaa",
@@ -406,28 +404,28 @@ export const CREATOR_NAMES = [
     accentColor: "#c084fc",
   },
   {
-    name: "Akankshka_Choudhary",
+    name: "Akanksha_Choudhary",
     keywords: [
-      "akankshka choudhary",
-      "akankshka choudhary latest",
-      "akankshka choudhary news",
-      "akankshka choudhary controversy",
-      "akankshka choudhary viral",
-      "akankshka choudhary trending",
-      "akankshka choudhary interview",
-      "akankshka choudhary reaction",
-      "akankshka choudhary statement",
-      "akankshka choudhary youtube",
-      "akankshka choudhary instagram",
-      "akankshka choudhary twitter",
-      "akankshka choudhary politics",
-      "akankshka choudhary latest video",
-      "akankshka choudhary latest",
-      "akankshka choudhary breaking",
-      "akankshka choudhary viral",
-      "akankshka choudhary explained",
+      "akanksha choudhary",
+      "akanksha choudhary latest",
+      "akanksha choudhary news",
+      "akanksha choudhary controversy",
+      "akanksha choudhary viral",
+      "akanksha choudhary trending",
+      "akanksha choudhary interview",
+      "akanksha choudhary reaction",
+      "akanksha choudhary statement",
+      "akanksha choudhary youtube",
+      "akanksha choudhary instagram",
+      "akanksha choudhary twitter",
+      "akanksha choudhary politics",
+      "akanksha choudhary latest video",
+      "akanksha choudhary latest",
+      "akanksha choudhary breaking",
+      "akanksha choudhary viral",
+      "akanksha choudhary explained",
     ],
-    twitterKeyword: ["Akankshka Choudhary latest news"],
+    twitterKeyword: ["Akanksha Choudhary latest news"],
     channelName: "@Akankshachoudhary_official",
     instagram: "akankshachoudhary_official",
     accentColor: "#e8d44d",
@@ -529,49 +527,18 @@ export const CREATOR_NAMES = [
 
 export const YT_CHANNELS = [
   "AajTak",
-  "NewsTak",
   "IndiaToday",
   "TheLallantop",
   "LallantopCinema",
   "NetflixIndiaOfficial",
-  "News18India",
-  "CNNNews18",
-  "IndiaTV",
-  "ABPNEWS",
-  "ZeeNews",
-  "ZeeBharat",
-  "TimesNow",
-  "TimesNowNavbharat",
-  "RepublicWorld",
-  "RepublicBharat",
-  "NDTV",
-  "NDTVIndia",
-  "WION",
-  "TV9Bharatvarsh",
-  "NewsNationTV",
-  "News24ThinkFirst",
-  "NewsX",
-  "IndiaNews",
   "HindustanTimes",
   "ENTLive",
   "RealTalkClips",
-  "DesiCrimeStories",
-  "BollywoodBubble",
   "Filmygyan",
-  "Instant Bollywood",
-  "TellyMasala",
   "Pinkvilla",
   "ETimes",
-  "ThePrint",
-  "Firstpost",
-  "India.com",
-  "ABP Live",
   "The Quint",
   "Brut India",
-  "Saas Bahu Aur Saazish",
-  "LiveInsaan",
-  "MaiSamayKaPankhaHoon",
-  "podcastwala705",
 
   "TellyReporter",
   "tellychakkar",
@@ -581,6 +548,12 @@ export const YT_CHANNELS = [
   "TruthSlayer_24",
   "shivangijoshiprofessional",
   "filmygyanvideos",
+  "zoomtv",
+  "ZeeSwitch",
+  "instantbollywood1",
+  "itvblink",
+  "Superx22",
+  "cric7saifi",
 ];
 
 export const INSTA_ACCOUNTS = [
@@ -657,6 +630,49 @@ export const INSTA_ACCOUNTS = [
   {
     username: "payal.alliance",
   },
+
+  {
+    username: "whyworriedd",
+  },
+  {
+    username: "cinematicuss",
+  },
+  {
+    username: "trolls_official",
+  },
+  {
+    username: "filmythic",
+  },
+  {
+    username: "groww.entertainment",
+  },
+  {
+    username: "mehrxedits",
+  },
+  {
+    username: "news24hr.in",
+  },
+  {
+    username: "harsh.923_",
+  },
+  {
+    username: "log.kya.sochenge",
+  },
+  {
+    username: "sigmaxwise",
+  },
+  {
+    username: "whoadityrr",
+  },
+  {
+    username: "tellysuper.in",
+  },
+  {
+    username: "gan_gster5999",
+  },
+  {
+    username: "bollywoodmachinebm",
+  },
 ];
 
 export const HANDLES = {
@@ -670,14 +686,14 @@ export const HANDLES = {
 
   Shivangi_Joshi: ["Shivangi Joshi", "shivangijoshi", "Shivangi", "Joshi"],
 
-  Akanshka_Choudhary: [
-    "Akanshka Choudhary",
-    "akanshkachoudhary",
-    "Akanshka",
+  Akanksha_Choudhary: [
+    "Akanksha Choudhary",
+    "akankshachoudhary",
+    "Akanksha",
     "Choudhary",
   ],
 
-  Kushan_Tandon: ["Kushan Tandon", "kushantandon", "Kushan", "Tandon"],
+  Kushal_Tandon: ["Kushal Tandon", "kushaltandon", "Kushal", "Tandon"],
 
   Vanshaj_Singh: ["Vanshaj Singh", "vanshajsingh", "Vanshaj", "Singh"],
 

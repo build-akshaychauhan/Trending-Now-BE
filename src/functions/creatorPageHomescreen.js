@@ -48,6 +48,14 @@ export const creatorFeedHomescreen = async (req, res) => {
       const creatorFeed = cache.get(buzzingCacheKey);
       if (!creatorFeed) continue;
       buzzingPosts.push(...creatorFeed);
+    }
+
+    const unfavoritedCreators = influencersList.filter(
+      (creator) =>
+        !favInfluencersList.some((fav) => fav._id.equals(creator._id)),
+    );
+
+    for (const creator of unfavoritedCreators) {
       creatorSuggestions.push(creator.suggestionImage);
     }
 

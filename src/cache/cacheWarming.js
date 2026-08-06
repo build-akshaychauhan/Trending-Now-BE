@@ -10,19 +10,11 @@ export async function cacheWarming() {
   try {
     // Home Page Feed warming up
     const key1 = CACHING_KEYS.HomepageFeedKey;
+    const key2 = CACHING_KEYS.CreatorPageFeedKey;
     const key3 = CACHING_KEYS.BuzzingFeedKey;
 
-    await creatorFeedStackCache(key1, key3, true);
+    await creatorFeedStackCache(key1, key2, key3, true);
 
-    // Creators Page Feed warming up
-    const topInfluencers = (
-      await Creator.find({}, "name -_id").sort({ trendingScore: -1 }).lean()
-    ).map((c) => c.name);
-
-    for (const creator of topInfluencers) {
-      const key2 = CACHING_KEYS.CreatorPageFeedKey + creator;
-      await creatorPageFeed(key2, creator, true);
-    }
     console.info("cache warming completed.");
   } catch (error) {
     console.error("cache warming failed !!", error);
