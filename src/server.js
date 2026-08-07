@@ -6,6 +6,7 @@ import path, { normalize } from "path";
 
 import feedRoutes from "./routes/feed.js";
 import healthRoutes from "./routes/health.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import normalizeCreator from "./routes/normalizeCreator.js";
 import { syncNewsFeed } from "./scraper/newsFetcher.js";
@@ -32,6 +33,7 @@ app.use(express.json());
 app.use("/api", versionCheck);
 
 app.use("/health", healthRoutes);
+app.use("/admin", adminRoutes);
 app.use("/api/feed", feedRoutes);
 app.use("/api/genre", genre);
 app.use("/media", express.static(path.join(process.cwd(), "media")));
@@ -130,7 +132,7 @@ const runDailyAt7AM = () => {
   // If it's already past 7 AM today, schedule for tomorrow
   if (now >= nextRun) {
     nextRun.setDate(nextRun.getDate() + 1);
-    console.log("next day 7 am job set");
+    console.log("7am / 7pm job set");
   }
 
   const initialDelay = nextRun.getTime() - now.getTime();
@@ -176,7 +178,7 @@ const runEveryFridayAt7AM = () => {
   // If it's already past 7 AM on Friday, schedule for next Friday
   if (daysUntilFriday === 0 && now >= nextRun) {
     nextRun.setDate(nextRun.getDate() + 7);
-    console.log("next Friday 7 AM job set");
+    console.log("7am / 7pm job set");
   }
 
   const initialDelay = nextRun.getTime() - now.getTime();

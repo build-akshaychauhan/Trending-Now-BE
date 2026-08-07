@@ -1159,6 +1159,9 @@ export async function creatorTrendScoreCalc() {
         {
           name: f.name,
           channelName: f.channel,
+          image: f.image,
+          accentColor: f.accentColor,
+          suggestionImage: f.suggestionImage,
           trendingScore: score,
         },
         {

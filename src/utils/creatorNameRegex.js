@@ -1,6 +1,6 @@
 export function containsUsername(text = "", username = "") {
   if (!text || !username) return false;
-  console.log(text, username);
+
   const normalize = (str) => {
     return str
       .toLowerCase()

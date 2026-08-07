@@ -188,7 +188,7 @@ export async function addCreatorsToGenre(genreId, creatorIds) {
             _id: 0,
           },
         ).lean();
-        console.log(stats);
+
         creator.stats = stats;
       }
     }
@@ -226,7 +226,6 @@ export async function removeCreatorFromGenre(genreId, creatorId) {
     });
     if (genre?.creatorsList?.length) {
       for (const creator of genre.creatorsList) {
-        console.log(creator);
         const stats = await SocialDumpStore.findOne(
           { creatorName: creator.name },
           {

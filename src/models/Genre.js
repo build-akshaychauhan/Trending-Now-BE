@@ -12,6 +12,9 @@ const GenreSchema = new mongoose.Schema(
     genreImage: {
       type: String,
     },
+    genreLogo: {
+      type: String,
+    },
     creatorsList: [
       {
         type: mongoose.Schema.Types.ObjectId,
