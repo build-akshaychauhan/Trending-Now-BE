@@ -23,6 +23,7 @@ import versionCheck from "./middleware/versionChecker.js";
 import genre from "./routes/genre.js";
 import creatorsRank from "./routes/creatorsRank.js";
 import userCreatorScreen from "./routes/userCreatorScreen.js";
+import cdnRoutes from "./routes/cdnRoutes.js";
 
 dotenv.config();
 
@@ -31,12 +32,14 @@ app.use(cors());
 
 app.use(express.json());
 app.use("/api", versionCheck);
+app.use(express.static(path.join(process.cwd(), "public")));
 
 app.use("/health", healthRoutes);
 app.use("/admin", adminRoutes);
+app.use("/admin/cdn", cdnRoutes);
+
 app.use("/api/feed", feedRoutes);
 app.use("/api/genre", genre);
-app.use("/media", express.static(path.join(process.cwd(), "media")));
 app.use("/api/user", userRoutes);
 app.use("/api/user-favourite", userCreatorScreen);
 app.use("/api/rank", creatorsRank);
@@ -204,8 +207,6 @@ const runEveryFridayAt7AM = () => {
 
 // ----------- Testing function calls --------------
 
-await cacheWarming();
-
 // await syncNewsFeed();
 // syncInstagramMedia().catch(console.error);
 // await syncCreatorFollowers();
@@ -213,3 +214,5 @@ await cacheWarming();
 // await InstagramPosts();
 // await TwitterPosts();
 // await creatorTrendScoreCalc()
+
+await cacheWarming();

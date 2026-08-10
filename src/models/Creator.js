@@ -11,15 +11,25 @@ const CreatorSchema = new mongoose.Schema(
       type: String,
     },
 
+    role: {
+      type: String,
+    },
+
     trendingScore: {
       type: Number,
       default: 0,
     },
 
-    image: { type: String },
     accentColor: { type: String },
-
+    image: { type: String },
+    cardImage: { type: String },
     suggestionImage: { type: String },
+
+    badge: {
+      type: String,
+      default: "null",
+      enum: ["Top Creator", "Rising Creator"],
+    },
 
     genres: [
       {
