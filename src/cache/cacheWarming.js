@@ -1,9 +1,6 @@
-import { creatorFeedStackCache } from "../functions/creatorFeedStackCache.js";
-import { creatorPageFeed } from "../functions/creatorPageFeed.js";
-import { scrapingConstantsCache } from "../functions/scrapingConstantsCache.js";
-import Creator from "../models/Creator.js";
-import { CACHING_KEYS } from "./cacheKeys.js";
 import cache from "./caching.js";
+import { creatorFeedStackCache } from "../functions/creatorFeedStackCache.js";
+import { CACHING_KEYS } from "./cacheKeys.js";
 
 export async function cacheWarming() {
   console.info("cache warming started...");
@@ -13,9 +10,7 @@ export async function cacheWarming() {
     const key1 = CACHING_KEYS.HomepageFeedKey;
     const key2 = CACHING_KEYS.CreatorPageFeedKey;
     const key3 = CACHING_KEYS.BuzzingFeedKey;
-    const key4 = CACHING_KEYS.ScrapingConstantsKey;
 
-    await scrapingConstantsCache(key4);
     await creatorFeedStackCache(key1, key2, key3, true);
 
     printCache();

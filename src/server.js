@@ -25,6 +25,8 @@ import genre from "./routes/genre.js";
 import creatorsRank from "./routes/creatorsRank.js";
 import userCreatorScreen from "./routes/userCreatorScreen.js";
 import cdnRoutes from "./routes/cdnRoutes.js";
+import { CACHING_KEYS } from "./cache/cacheKeys.js";
+import { scrapingConstantsCache } from "./functions/scrapingConstantsCache.js";
 
 dotenv.config();
 
@@ -176,8 +178,6 @@ const runDailyAt7AM = () => {
   }, initialDelay);
 };
 
-// runDailyAt7AM();
-
 // ----------- Weekly Scheduler (7AM - IST / 1AM - UTC) --------------
 
 const runEveryFridayAt7AM = () => {
@@ -216,10 +216,13 @@ const runEveryFridayAt7AM = () => {
   }, initialDelay);
 };
 
+// ----------- function calls --------------
+
+await scrapingConstantsCache(CACHING_KEYS.ScrapingConstantsKey);
+// runDailyAt7AM();
 // runEveryFridayAt7AM();
 
-// ----------- Testing function calls --------------
-
+// ------Testing calls-------
 // await syncNewsFeed();
 // syncInstagramMedia().catch(console.error);
 // await syncCreatorFollowers();
