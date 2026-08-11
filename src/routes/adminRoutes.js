@@ -7,6 +7,8 @@ import {
   creatorList,
   deleteConstant,
   deleteGenres,
+  getAllAppCard,
+  getAllAppLayout,
   getAppCard,
   getAppLayout,
   getConstant,
@@ -37,10 +39,12 @@ router.get("/all-creators", creatorList);
 
 // App screen layout API's
 router.post("/screen", upsertAppLayout);
+router.get("/screen", getAllAppLayout);
 router.get("/screen/:appScreen", getAppLayout);
 
 // App screen layout API's
 router.post("/card", upsertAppCard);
+router.get("/card", getAllAppCard);
 router.get("/card/:appCard", getAppCard);
 
 export default router;

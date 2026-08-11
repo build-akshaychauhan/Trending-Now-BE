@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import path, { normalize } from "path";
+import { fileURLToPath } from "url";
 
 import feedRoutes from "./routes/feed.js";
 import healthRoutes from "./routes/health.js";
@@ -28,6 +29,12 @@ import cdnRoutes from "./routes/cdnRoutes.js";
 dotenv.config();
 
 const app = express();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const ADMIN_PANEL_PATH = path.join(__dirname, "../admin-panel");
+
 app.use(cors());
 
 app.use(express.json());
@@ -114,6 +121,12 @@ app.get("/proxy", async (req, res) => {
     console.error(err);
     res.status(500).send("Proxy failed");
   }
+});
+
+app.use("/dashboard", express.static(ADMIN_PANEL_PATH));
+
+app.get("/dashboard/{*splat}", (req, res) => {
+  res.sendFile(path.join(ADMIN_PANEL_PATH, "index.html"));
 });
 
 mongoose.connect(process.env.MONGO_URI);

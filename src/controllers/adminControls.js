@@ -271,6 +271,33 @@ export const getAppLayout = async (req, res) => {
   }
 };
 
+// Get app screens layout
+export const getAllAppLayout = async (req, res) => {
+  try {
+    const layout = await AppLayout.find({}).lean();
+
+    if (!layout) {
+      return res.status(404).json({
+        success: false,
+        message: `layouts not found`,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: layout,
+    });
+  } catch (error) {
+    console.error("Get App Layouts Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch app layouts",
+      error: error.message,
+    });
+  }
+};
+
 // Create or Update app card
 export const upsertAppCard = async (req, res) => {
   try {
@@ -352,6 +379,33 @@ export const getAppCard = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch app card",
+      error: error.message,
+    });
+  }
+};
+
+// Get all app cards
+export const getAllAppCard = async (req, res) => {
+  try {
+    const cards = await AppCard.find({}).lean();
+
+    if (!cards) {
+      return res.status(404).json({
+        success: false,
+        message: `cards not found`,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: cards,
+    });
+  } catch (error) {
+    console.error("Get App cards Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch app cards",
       error: error.message,
     });
   }
