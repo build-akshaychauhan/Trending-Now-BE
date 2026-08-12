@@ -31,6 +31,11 @@ const CreatorSchema = new mongoose.Schema(
       enum: ["Top Creator", "Rising Creator"],
     },
 
+    socialAccounts: {
+      instagram: { type: String },
+      youtube: { type: String },
+    },
+
     genres: [
       {
         type: mongoose.Schema.Types.ObjectId,

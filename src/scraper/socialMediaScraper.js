@@ -1152,6 +1152,16 @@ export async function creatorTrendScoreCalc() {
       score = score + (socialPostsCount[0]?.twitter || 0) * 8;
       score = score + (socialPostsCount[0]?.youtube || 0) * 4;
 
+      const instaUrl =
+        f?.instagram?.length > 0
+          ? `https://www.instagram.com/${f.instagram}/`
+          : null;
+
+      const youtubeUrl =
+        f?.channelName?.length > 0
+          ? `https://www.youtube.com/${f.channelName}`
+          : null;
+
       await Creator.findOneAndUpdate(
         {
           name: f.name,
@@ -1164,6 +1174,10 @@ export async function creatorTrendScoreCalc() {
           image: f.image,
           cardImage: f.cardImage,
           suggestionImage: f.suggestionImage,
+          socialAccounts: {
+            instagram: instaUrl,
+            youtube: youtubeUrl,
+          },
           trendingScore: score,
         },
         {
