@@ -8,6 +8,7 @@ import { byLatest, getScore } from "../utils/normalizer.js";
 import { trendingNowData } from "../utils/trendingNowData.js";
 import AppCard from "../models/AppCard.js";
 import Genre from "../models/Genre.js";
+import SocialDumpStore from "../models/SocialDumpStore.js";
 
 const DEFAULT_LAYOUT = [
   {
@@ -76,10 +77,25 @@ export const creatorFeedHomescreen = async (req, res) => {
         })
         .lean();
 
-      // temprorary for posts count
-      favInfluencersList = favInfluencersList.map((c, index) => ({
+      const creatorNames = favInfluencersList.map((c) => c.name);
+
+      const socialDumpStores = await SocialDumpStore.find(
+        { creatorName: { $in: creatorNames } },
+        { creatorName: 1, "scrapeFrequency.dailyNewPostsCount": 1 },
+      ).lean();
+
+      const postsCountMap = new Map(
+        socialDumpStores.map((item) => [
+          item.creatorName,
+          item.scrapeFrequency?.dailyNewPostsCount || 0,
+        ]),
+      );
+
+      console.log(new Date().toISOString(), postsCountMap);
+
+      favInfluencersList = favInfluencersList.map((c) => ({
         ...c,
-        newFetchCount: index < 2 ? index + 2 * 10 : 0,
+        newFetchCount: postsCountMap.get(c.name) || 0,
       }));
     }
 
@@ -131,72 +147,74 @@ export const creatorFeedHomescreen = async (req, res) => {
     const favoriteGenreIds = [
       ...new Set(
         favInfluencersList.flatMap((creator) =>
-          creator.genres.map((genre) => genre._id),
+          creator?.genres?.map((genre) => genre?._id),
         ),
       ),
     ];
 
-    const genreCreators = await Genre.find({
-      _id: { $in: favoriteGenreIds },
-    })
-      .populate("creatorsList")
-      .lean();
+    if (favoriteGenreIds.length > 0) {
+      const genreCreators = await Genre.find({
+        _id: { $in: favoriteGenreIds },
+      })
+        .populate("creatorsList")
+        .lean();
 
-    // Flatten creators from all genres
-    const creatorlist = genreCreators.flatMap((genre) => genre.creatorsList);
+      // Flatten creators from all genres
+      const creatorlist = genreCreators.flatMap((genre) => genre?.creatorsList);
 
-    // Create Set of favorite creator IDs
-    const favoriteCreatorIds = new Set(
-      favInfluencersList.map((creator) => creator._id.toString()),
-    );
+      // Create Set of favorite creator IDs
+      const favoriteCreatorIds = new Set(
+        favInfluencersList.map((creator) => creator._id?.toString()),
+      );
 
-    // Remove already-favorited creators
-    const unfavoritedgenreCreators = creatorlist.filter(
-      (creator) => !favoriteCreatorIds.has(creator._id.toString()),
-    );
+      // Remove already-favorited creators
+      const unfavoritedgenreCreators = creatorlist.filter(
+        (creator) => !favoriteCreatorIds.has(creator._id?.toString()),
+      );
 
-    const suggestedInfluencers =
-      unfavoritedgenreCreators.length > 0
-        ? unfavoritedgenreCreators
-        : influencersList;
+      const suggestedInfluencers =
+        unfavoritedgenreCreators.length > 0
+          ? unfavoritedgenreCreators
+          : influencersList;
 
-    for (const creator of suggestedInfluencers) {
-      if (creator.badge && creator.badge !== null) {
-        const genreCreatorName =
-          favInfluencersList.length > 0
-            ? favInfluencersList
-                .filter((c) =>
-                  c.genres?.some((g) =>
-                    creator.genres?.some(
-                      (cg) => g._id.toString() === cg._id.toString(),
-                    ),
-                  ),
-                )
-                .slice(0, 1)
-                .map((c) => c.name)
-                .join(", ")
-            : influencersList
-                .filter(
-                  (c) =>
-                    c._id?.toString() !== creator._id?.toString() &&
-                    c.name !== creator.name &&
+      for (const creator of suggestedInfluencers) {
+        if (creator.badge && creator.badge !== null) {
+          const genreCreatorName =
+            favInfluencersList.length > 0
+              ? favInfluencersList
+                  .filter((c) =>
                     c.genres?.some((g) =>
                       creator.genres?.some(
                         (cg) => g._id.toString() === cg._id.toString(),
                       ),
                     ),
-                )
-                .slice(0, 1)
-                .map((c) => c.name)[0];
+                  )
+                  .slice(0, 1)
+                  .map((c) => c.name)
+                  .join(", ")
+              : influencersList
+                  .filter(
+                    (c) =>
+                      c._id?.toString() !== creator._id?.toString() &&
+                      c.name !== creator.name &&
+                      c.genres?.some((g) =>
+                        creator.genres?.some(
+                          (cg) => g._id.toString() === cg._id.toString(),
+                        ),
+                      ),
+                  )
+                  .slice(0, 1)
+                  .map((c) => c.name)[0];
 
-        const creatorMeta = {
-          CreatorName: creator.name,
-          badge: creator.badge,
-          role: creator.role,
-          suggestionline: `Loved by +2.5K fans of ${genreCreatorName}`,
-          suggestionImage: creator.suggestionImage,
-        };
-        creatorSuggestions.push(creatorMeta);
+          const creatorMeta = {
+            CreatorName: creator.name,
+            badge: creator.badge,
+            role: creator.role,
+            suggestionline: `Loved by +2.5K fans of ${genreCreatorName}`,
+            suggestionImage: creator.suggestionImage,
+          };
+          creatorSuggestions.push(creatorMeta);
+        }
       }
     }
 

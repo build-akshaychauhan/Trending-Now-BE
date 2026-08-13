@@ -88,7 +88,7 @@ const ytVideoId = (url) => {
 
 // ─── Platform Normalisers ───────────────────────────────────────────────────
 
-function normaliseInstagram(igAccounts = []) {
+export function normaliseInstagram(igAccounts = []) {
   const posts = [];
 
   for (const p of igAccounts) {
@@ -99,7 +99,7 @@ function normaliseInstagram(igAccounts = []) {
     posts.push({
       id: safe(p.shortcode || p.postId),
       postId: safe(p.postId),
-
+      creator: p.creatorName,
       platform: "instagram",
 
       account: safe(p.username),
@@ -135,13 +135,15 @@ function normaliseInstagram(igAccounts = []) {
   return posts;
 }
 
-function normaliseYouTubeShorts(shortChannels = []) {
+export function normaliseYouTubeShorts(shortChannels = []) {
   const posts = [];
   for (const p of shortChannels) {
     if (!p || !p.url) continue;
     const videoId = ytVideoId(p.url);
     posts.push({
       id: videoId,
+      shortId: videoId,
+      creator: p.creatorName,
       platform: "youtube_shorts",
       url: safe(p.url),
       embedUrl: videoId ? `https://www.youtube.com/embed/${videoId}` : null,
@@ -155,7 +157,7 @@ function normaliseYouTubeShorts(shortChannels = []) {
   return posts;
 }
 
-function normaliseTwitter(twitterPosts = []) {
+export function normaliseTwitter(twitterPosts = []) {
   const posts = [];
 
   for (const t of twitterPosts) {
@@ -165,7 +167,8 @@ function normaliseTwitter(twitterPosts = []) {
 
     posts.push({
       id: safe(t.tweetId || t.tweet_id),
-
+      tweetId: safe(t.tweetId || t.tweet_id),
+      creator: t.creatorName,
       platform: "twitter",
 
       account: safe(t.username || t.screen_name),

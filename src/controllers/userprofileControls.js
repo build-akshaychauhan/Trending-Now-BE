@@ -7,8 +7,13 @@ import SocialAllDump from "../models/SocialAllDump.js";
 import User from "../models/User.js";
 import mongoose from "mongoose";
 import Comment from "../models/Comment.js";
-import ArticleStore from "../models/ArticleStore.js";
+import Article from "../models/ArticleStore.js";
 import Creator from "../models/Creator.js";
+import {
+  normaliseInstagram,
+  normaliseTwitter,
+  normaliseYouTubeShorts,
+} from "../utils/normalizer.js";
 
 // REGISTER OR LOGIN
 export const createOrLoginUser = async (req, res) => {
@@ -297,7 +302,7 @@ export const createComment = async (req, res) => {
 
     if (source !== "feed") {
       const articleExists =
-        source === "news" ? !!(await ArticleStore.findById(postId)) : null;
+        source === "news" ? !!(await Article.findById(postId)) : null;
 
       if (source === "news" && !articleExists) {
         return res.status(404).json({
@@ -573,6 +578,431 @@ export const getFavouriteCreators = async (req, res) => {
     console.error(err);
 
     res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const addBookmarkPost = async (req, res) => {
+  try {
+    const { postId, platform } = req.body;
+    const firebaseUid = req.auth_firebase_uid;
+
+    if (!postId || !platform) {
+      return res.status(400).json({
+        success: false,
+        message: "postId and model are required",
+      });
+    }
+    const model = platform;
+
+    if (!["news", "instagram", "twitter", "youtube_shorts"].includes(model)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid post model",
+      });
+    }
+
+    const postIdString = String(postId);
+
+    let bookmarkData = {
+      postId: postIdString,
+      model,
+    };
+
+    // -----------------------------
+    // ARTICLE
+    // -----------------------------
+    if (model === "news") {
+      if (!mongoose.Types.ObjectId.isValid(postId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid Article id",
+        });
+      }
+
+      const articleExists = await Article.exists({
+        _id: postId,
+      });
+
+      if (!articleExists) {
+        return res.status(404).json({
+          success: false,
+          message: "Article not found",
+        });
+      }
+    }
+
+    // -----------------------------
+    // SOCIAL
+    // -----------------------------
+    else {
+      let query;
+
+      if (model === "instagram") {
+        query = {
+          "instagram.postId": String(postId),
+        };
+      }
+
+      if (model === "youtube_shorts") {
+        query = {
+          "youtubeShorts.shortId": String(postId),
+        };
+      }
+
+      if (model === "twitter") {
+        query = {
+          "twitter.tweetId": String(postId),
+        };
+      }
+
+      const socialDump = await SocialAllDump.findOne(query, { _id: 1 }).lean();
+
+      if (!socialDump) {
+        return res.status(404).json({
+          success: false,
+          message: "Social post not found",
+        });
+      }
+
+      bookmarkData.socialDumpId = socialDump._id;
+    }
+
+    // -----------------------------
+    // ADD BOOKMARK
+    // -----------------------------
+    const user = await User.findOneAndUpdate(
+      {
+        firebaseUid,
+        bookmarkPosts: {
+          $not: {
+            $elemMatch: {
+              postId: postIdString,
+              model,
+            },
+          },
+        },
+      },
+      {
+        $addToSet: {
+          bookmarkPosts: bookmarkData,
+        },
+      },
+      {
+        returnDocument: "after",
+      },
+    );
+
+    if (!user) {
+      const existingUser = await User.findOne({
+        firebaseUid,
+      });
+
+      if (!existingUser) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: "Post already bookmarked",
+        data: existingUser.bookmarkPosts,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Post bookmarked",
+      data: user.bookmarkPosts,
+    });
+  } catch (err) {
+    console.error("addBookmarkPost error:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const removeBookmarkPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const firebaseUid = req.auth_firebase_uid;
+
+    if (!postId || !postId.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "postId is required",
+      });
+    }
+
+    const user = await User.findOneAndUpdate(
+      { firebaseUid },
+      {
+        $pull: {
+          bookmarkPosts: {
+            postId: String(postId),
+          },
+        },
+      },
+      {
+        returnDocument: "after",
+      },
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Post bookmark removed",
+      data: user.bookmarkPosts,
+    });
+  } catch (err) {
+    console.error("removeBookmarkPost error:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const getBookmarkPost = async (req, res) => {
+  try {
+    const firebaseUid = req.auth_firebase_uid;
+
+    const user = await User.findOne({
+      firebaseUid,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const bookmarks = user.bookmarkPosts || [];
+
+    // -----------------------------------------
+    // Separate bookmarks
+    // -----------------------------------------
+
+    const articleIds = [];
+    const socialDumpIds = [];
+
+    for (const bookmark of bookmarks) {
+      if (bookmark.model === "news") {
+        if (mongoose.Types.ObjectId.isValid(bookmark.postId)) {
+          articleIds.push(bookmark.postId);
+        }
+      } else if (bookmark.socialDumpId) {
+        socialDumpIds.push(bookmark.socialDumpId);
+      }
+    }
+
+    // -----------------------------------------
+    // Get actual documents
+    // -----------------------------------------
+
+    const [articles, socialDumps] = await Promise.all([
+      articleIds.length
+        ? Article.find({
+            _id: {
+              $in: articleIds,
+            },
+          }).lean()
+        : [],
+
+      socialDumpIds.length
+        ? SocialAllDump.find({
+            _id: {
+              $in: socialDumpIds,
+            },
+          }).lean()
+        : [],
+    ]);
+
+    // -----------------------------------------
+    // Valid IDs
+    // -----------------------------------------
+
+    const validArticleIds = new Set(
+      articles.map((article) => article._id.toString()),
+    );
+
+    const validSocialDumpIds = new Set(
+      socialDumps.map((dump) => dump._id.toString()),
+    );
+
+    // -----------------------------------------
+    // Remove deleted/stale bookmarks
+    // -----------------------------------------
+
+    const validBookmarks = bookmarks.filter((bookmark) => {
+      if (bookmark.model === "news") {
+        return validArticleIds.has(String(bookmark.postId));
+      }
+
+      if (["instagram", "twitter", "youtube_shorts"].includes(bookmark.model)) {
+        return (
+          bookmark.socialDumpId &&
+          validSocialDumpIds.has(bookmark.socialDumpId.toString())
+        );
+      }
+
+      return false;
+    });
+
+    // -----------------------------------------
+    // Update DB ONLY if stale bookmarks exist
+    // -----------------------------------------
+
+    if (validBookmarks.length !== bookmarks.length) {
+      user.bookmarkPosts = validBookmarks;
+
+      await user.save();
+    }
+
+    // -----------------------------------------
+    // Create social post collections
+    // -----------------------------------------
+
+    let merged = {
+      instagram: [],
+      twitter: [],
+      youtubeShorts: [],
+    };
+
+    for (const n of articles) {
+      n.platform = "news";
+    }
+
+    for (const dump of socialDumps) {
+      merged.instagram.push(
+        ...(Array.isArray(dump.instagram)
+          ? dump.instagram.map((post) => ({
+              ...post,
+              creatorName: dump.creatorName,
+            }))
+          : []),
+      );
+
+      merged.twitter.push(
+        ...(Array.isArray(dump.twitter)
+          ? dump.twitter.map((post) => ({
+              ...post,
+              creatorName: dump.creatorName,
+            }))
+          : []),
+      );
+
+      merged.youtubeShorts.push(
+        ...(Array.isArray(dump.youtubeShorts)
+          ? dump.youtubeShorts.map((post) => ({
+              ...post,
+              creatorName: dump.creatorName,
+            }))
+          : []),
+      );
+    }
+
+    // -----------------------------------------
+    // Dedupe helper
+    // -----------------------------------------
+
+    const dedupeByKey = (arr, key) =>
+      Object.values(
+        Object.fromEntries(
+          arr.map((item, index) => [item?.[key] || `fallback_${index}`, item]),
+        ),
+      );
+
+    // -----------------------------------------
+    // Normalize social data
+    // -----------------------------------------
+
+    const instagram = normaliseInstagram(
+      dedupeByKey(merged.instagram, "postId"),
+    );
+
+    const twitter = normaliseTwitter(dedupeByKey(merged.twitter, "tweetId"));
+
+    const youtubeShorts = normaliseYouTubeShorts(
+      dedupeByKey(merged.youtubeShorts, "url"),
+    );
+
+    // -----------------------------------------
+    // Create lookup maps
+    // -----------------------------------------
+
+    const instagramMap = new Map(
+      instagram.map((post) => [String(post.postId), post]),
+    );
+
+    const twitterMap = new Map(
+      twitter.map((post) => [String(post.tweetId), post]),
+    );
+
+    const youtubeMap = new Map(
+      youtubeShorts.map((post) => [String(post.shortId), post]),
+    );
+
+    const articleMap = new Map(
+      articles.map((article) => [article._id.toString(), article]),
+    );
+
+    // -----------------------------------------
+    // Build response only
+    // DB bookmarkPosts remains unchanged
+    // -----------------------------------------
+
+    const responseData = validBookmarks.map((bookmark) => {
+      let postData = null;
+
+      const postId = String(bookmark.postId);
+      if (bookmark.model === "news") {
+        postData = articleMap.get(postId) || null;
+      }
+
+      if (bookmark.model === "instagram") {
+        postData = instagramMap.get(postId) || null;
+      }
+
+      if (bookmark.model === "twitter") {
+        postData = twitterMap.get(postId) || null;
+      }
+
+      if (bookmark.model === "youtube_shorts") {
+        postData = youtubeMap.get(postId) || null;
+      }
+
+      return postData;
+    });
+
+    // -----------------------------------------
+    // Return
+    // -----------------------------------------
+
+    return res.json({
+      success: true,
+      count: responseData.length,
+      data: responseData,
+    });
+  } catch (err) {
+    console.error("getBookmarkPost error:", err);
+
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
     });

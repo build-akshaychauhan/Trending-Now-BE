@@ -10,11 +10,13 @@ import healthRoutes from "./routes/health.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import normalizeCreator from "./routes/normalizeCreator.js";
+import { scrapingConstantsCache } from "./functions/scrapingConstantsCache.js";
 import { syncNewsFeed } from "./scraper/newsFetcher.js";
 import { syncInstagramMedia } from "./utils/mediaCDNWorker.js";
 import {
   creatorTrendScoreCalc,
   InstagramPosts,
+  runBoostScrape,
   syncCreatorFollowers,
   TwitterPosts,
   YoutubeShorts,
@@ -26,7 +28,6 @@ import creatorsRank from "./routes/creatorsRank.js";
 import userCreatorScreen from "./routes/userCreatorScreen.js";
 import cdnRoutes from "./routes/cdnRoutes.js";
 import { CACHING_KEYS } from "./cache/cacheKeys.js";
-import { scrapingConstantsCache } from "./functions/scrapingConstantsCache.js";
 
 dotenv.config();
 
@@ -178,6 +179,42 @@ const runDailyAt7AM = () => {
   }, initialDelay);
 };
 
+// ----------- Adaptive Boost Scheduler (1x/day, 9:30 UTC / 3PM IST) --------------
+//
+// Runs once a day, in between the two base runs above. It only rescrapes
+// creators that were bumped to 3x/day by trackScrapeFrequency() (i.e. they
+// hit the new-post threshold during a recent scrape). If nobody is
+// currently boosted, runBoostScrape() is a cheap no-op.
+
+const runBoostScrapeDaily = () => {
+  const now = new Date();
+
+  const nextRun = new Date();
+  nextRun.setHours(9, 30, 0, 0);
+
+  if (now >= nextRun) {
+    nextRun.setDate(nextRun.getDate() + 1);
+  }
+
+  const initialDelay = nextRun.getTime() - now.getTime();
+
+  setTimeout(() => {
+    const executeBoostJob = async () => {
+      try {
+        await runBoostScrape();
+      } catch (error) {
+        console.error("runBoostScrape error:", error);
+      } finally {
+        await cacheWarming();
+      }
+    };
+
+    executeBoostJob();
+
+    setInterval(executeBoostJob, 24 * 60 * 60 * 1000);
+  }, initialDelay);
+};
+
 // ----------- Weekly Scheduler (7AM - IST / 1AM - UTC) --------------
 
 const runEveryFridayAt7AM = () => {
@@ -220,15 +257,18 @@ const runEveryFridayAt7AM = () => {
 
 await scrapingConstantsCache(CACHING_KEYS.ScrapingConstantsKey);
 // runDailyAt7AM();
+// runBoostScrapeDaily();
 // runEveryFridayAt7AM();
 
 // ------Testing calls-------
 // await syncNewsFeed();
-// syncInstagramMedia().catch(console.error);
-// await syncCreatorFollowers();
+
 // await YoutubeShorts();
 // await InstagramPosts();
 // await TwitterPosts();
-// await creatorTrendScoreCalc()
+
+// syncInstagramMedia().catch(console.error);
+// await syncCreatorFollowers();
+// await creatorTrendScoreCalc();
 
 await cacheWarming();

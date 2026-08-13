@@ -59,13 +59,25 @@ export const parseRelativeDate = (text) => {
   return date;
 };
 
-export const CREATOR_LOOKUP = CREATOR_NAMES.map((creator) => ({
-  ...creator,
-  allKeywords: [
-    creator.name.replace(/_/g, " ").toLowerCase(),
-    ...(creator.keywords || []).map((k) => k.toLowerCase()),
-  ],
-}));
+// NOTE: CREATOR_NAMES is loaded asynchronously from the DB (see
+// loadScrapingConstants in constants/keywords.js) and is EMPTY at the
+// moment this module is first imported. CREATOR_LOOKUP and `keywords`
+// (below) used to be built once here with `.map()` / `.flatMap()`, so they
+// permanently captured that empty snapshot and never reflected creators
+// added later once the DB constants finished loading - every scraper that
+// relied on them (getMatchedCreators, socialMediaScraper matching, twitter
+// keyword search, etc.) silently matched/returned nothing for real
+// creators. Fixed by computing them fresh on every call via a function
+// instead of once at import time.
+export function getCreatorLookup() {
+  return CREATOR_NAMES.map((creator) => ({
+    ...creator,
+    allKeywords: [
+      creator.name.replace(/_/g, " ").toLowerCase(),
+      ...(creator.keywords || []).map((k) => k.toLowerCase()),
+    ],
+  }));
+}
 
 export function createCreatorCache() {
   const cache = {};
@@ -87,23 +99,137 @@ export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export const keywords = [
-  ...new Set(CREATOR_NAMES.flatMap((creator) => creator.twitterKeyword || [])),
-].map((k) => encodeURIComponent(k));
+export function getTwitterKeywords() {
+  return [
+    ...new Set(
+      CREATOR_NAMES.flatMap((creator) => creator.twitterKeyword || []),
+    ),
+  ].map((k) => encodeURIComponent(k));
+}
 
-export function getMatchedCreators(text = "") {
+export function getMatchedCreators(
+  text = "",
+  creatorLookup = getCreatorLookup(),
+) {
   const searchableText = text
     .toLowerCase()
     .replace(/[#_]/g, "")
     .replace(/\s+/g, "");
 
-  return CREATOR_LOOKUP.filter((creator) =>
-    creator.allKeywords.some((keyword) =>
-      searchableText.includes(
-        keyword.toLowerCase().replace(/[#_]/g, "").replace(/\s+/g, ""),
+  return creatorLookup
+    .filter((creator) =>
+      creator.allKeywords.some((keyword) =>
+        searchableText.includes(
+          keyword.toLowerCase().replace(/[#_]/g, "").replace(/\s+/g, ""),
+        ),
       ),
-    ),
-  ).map((creator) => creator.name);
+    )
+    .map((creator) => creator.name);
+}
+
+// ==========================
+// ADAPTIVE SCRAPE FREQUENCY
+// ==========================
+//
+// Default: every creator is scraped 2x/day (the normal scheduled runs).
+// If a scrape run finds >= SCRAPE_THRESHOLD_POSTS new posts for a creator
+// on a given day, that creator is "boosted" to 3x/day (an extra run is
+// added for them). If, while boosted, the creator stays below the
+// threshold for REVERT_STREAK_DAYS consecutive full days, it's reverted
+// back to 2x/day.
+
+export const SCRAPE_THRESHOLD_POSTS = 15;
+export const DEFAULT_TIMES_PER_DAY = 2;
+export const BOOSTED_TIMES_PER_DAY = 3;
+export const REVERT_STREAK_DAYS = 2;
+
+function todayKey() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function getPostKey(post) {
+  return (
+    post?.postId ||
+    post?.tweetId ||
+    post?.shortId ||
+    post?.postUrl ||
+    post?.url ||
+    JSON.stringify(post)
+  );
+}
+
+export async function trackScrapeFrequency(creatorName, newPostsCountToday) {
+  if (!creatorName || creatorName === "__system__") return;
+
+  const today = todayKey();
+
+  const dumpStore = await SocialDumpStore.findOneAndUpdate(
+    { creatorName },
+    { $setOnInsert: { creatorName } },
+    { upsert: true, returnDocument: "after" },
+  );
+
+  const freq = dumpStore.scrapeFrequency || {};
+
+  let timesPerDay = freq.timesPerDay ?? DEFAULT_TIMES_PER_DAY;
+  let dailyNewPostsCount = freq.dailyNewPostsCount ?? 0;
+  let trackingDate = freq.trackingDate ?? null;
+  let belowThresholdDays = freq.belowThresholdDays ?? 0;
+  let lastBoostedAt = freq.lastBoostedAt ?? null;
+
+  // Rolled over into a new day -> close out the previous tracking day first
+  if (trackingDate && trackingDate !== today) {
+    if (timesPerDay === BOOSTED_TIMES_PER_DAY) {
+      if (dailyNewPostsCount >= SCRAPE_THRESHOLD_POSTS) {
+        belowThresholdDays = 0;
+      } else {
+        belowThresholdDays += 1;
+      }
+
+      if (belowThresholdDays >= REVERT_STREAK_DAYS) {
+        timesPerDay = DEFAULT_TIMES_PER_DAY;
+        belowThresholdDays = 0;
+      }
+    }
+
+    dailyNewPostsCount = 0;
+  }
+
+  dailyNewPostsCount += newPostsCountToday || 0;
+  trackingDate = today;
+
+  if (
+    dailyNewPostsCount >= SCRAPE_THRESHOLD_POSTS &&
+    timesPerDay !== BOOSTED_TIMES_PER_DAY
+  ) {
+    timesPerDay = BOOSTED_TIMES_PER_DAY;
+    belowThresholdDays = 0;
+    lastBoostedAt = new Date();
+  }
+
+  await SocialDumpStore.updateOne(
+    { creatorName },
+    {
+      $set: {
+        "scrapeFrequency.timesPerDay": timesPerDay,
+        "scrapeFrequency.dailyNewPostsCount": dailyNewPostsCount,
+        "scrapeFrequency.trackingDate": trackingDate,
+        "scrapeFrequency.belowThresholdDays": belowThresholdDays,
+        "scrapeFrequency.lastBoostedAt": lastBoostedAt,
+        "scrapeFrequency.lastUpdatedAt": new Date(),
+      },
+    },
+  );
+}
+
+export async function getBoostedCreatorNames() {
+  const boosted = await SocialDumpStore.find({
+    "scrapeFrequency.timesPerDay": BOOSTED_TIMES_PER_DAY,
+  })
+    .select("creatorName")
+    .lean();
+
+  return boosted.map((c) => c.creatorName).filter(Boolean);
 }
 
 export function extractMedia(tweet) {
@@ -137,37 +263,67 @@ export function extractMedia(tweet) {
   return media;
 }
 
-export async function getPlatformScrapeConfig(platform) {
-  let dumpStore = await SocialDumpStore.findOne({
-    creatorName: "__system__",
-  });
+const BOOTSTRAP_RANGE_DAYS = 90;
 
-  if (!dumpStore) {
-    return {
-      isBootstrap: true,
-      dumpStore: null,
-      rangeDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
-    };
+// Per-creator, per-platform bootstrap + rangeDate resolution.
+//
+// Previously this read/wrote a single shared "__system__" document, so the
+// FIRST creator to finish bootstrapping a platform flipped that flag
+// globally — every creator added afterwards (even brand new ones) was
+// treated as already-bootstrapped and only ever got a 1-day lookback
+// instead of the intended 90-day history pull.
+//
+// Fix: bootstrap status lives on each creator's own SocialDumpStore doc.
+// Returns:
+//   - rangeDate: the WIDEST cutoff needed across the given creators (used
+//     to decide how far back a shared crawl/pagination/keyword-search needs
+//     to go so it doesn't miss a newly-added creator's 90-day history).
+//   - creatorCutoffs: Map<creatorName, Date> — each creator's OWN cutoff,
+//     used to filter matched posts per-creator so already-bootstrapped
+//     creators don't get flooded with old backlog just because a sibling
+//     creator needed a 90-day pull in the same run.
+export async function getPlatformScrapeConfig(
+  platform,
+  creatorNames = CREATOR_NAMES.map((c) => c.name),
+) {
+  const bootstrapCutoff = new Date(
+    Date.now() - BOOTSTRAP_RANGE_DAYS * 24 * 60 * 60 * 1000,
+  );
+
+  const normalCutoff = new Date();
+  normalCutoff.setDate(normalCutoff.getDate() - 1);
+
+  const docs = await SocialDumpStore.find({
+    creatorName: { $in: creatorNames },
+  })
+    .select(`creatorName platformState.${platform}`)
+    .lean();
+
+  const stateByCreator = new Map(
+    docs.map((d) => [d.creatorName, d.platformState?.[platform]]),
+  );
+
+  const creatorCutoffs = new Map();
+
+  let isBootstrap = false;
+  let rangeDate = normalCutoff;
+
+  for (const name of creatorNames) {
+    const state = stateByCreator.get(name);
+    const needsBootstrap = !state?.bootstrapCompleted;
+
+    creatorCutoffs.set(name, needsBootstrap ? bootstrapCutoff : normalCutoff);
+
+    if (needsBootstrap) {
+      isBootstrap = true;
+      rangeDate = bootstrapCutoff;
+    }
   }
-
-  const state = dumpStore.platformState?.[platform];
-
-  if (!state?.bootstrapCompleted) {
-    return {
-      isBootstrap: true,
-      dumpStore,
-      rangeDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
-    };
-  }
-
-  const rangeDate = new Date();
-
-  rangeDate.setDate(rangeDate.getDate() - 1);
 
   return {
-    isBootstrap: false,
-    dumpStore,
+    isBootstrap,
     rangeDate,
+    creatorCutoffs,
   };
 }
 
@@ -205,19 +361,15 @@ export async function savePlatformData({ creatorName, platform, posts }) {
   }
 
   if (!posts?.length) {
-    await SocialDumpStore.findOneAndUpdate(
+    await SocialDumpStore.updateOne(
       {
-        creatorName: "__system__",
+        creatorName,
       },
       {
         $set: {
-          creatorName: "__system__",
-
           [`platformState.${platform}.bootstrapCompleted`]: true,
 
           [`platformState.${platform}.lastScrapedAt`]: new Date(),
-
-          [`platformState.${platform}.latestPostDate`]: null,
         },
       },
       {
@@ -229,6 +381,10 @@ export async function savePlatformData({ creatorName, platform, posts }) {
   }
 
   const groupedPosts = groupPostsByDay(posts);
+
+  const today = todayKey();
+
+  let newPostsToday = 0;
 
   for (const [day, dayPosts] of Object.entries(groupedPosts)) {
     const scrapeDate = new Date(day);
@@ -254,7 +410,21 @@ export async function savePlatformData({ creatorName, platform, posts }) {
 
         expireAt,
       });
+
+      if (day === today) {
+        newPostsToday += dayPosts.length;
+      }
     } else {
+      if (day === today) {
+        const existingKeys = new Set(
+          (existing[platform] || []).map((p) => getPostKey(p)),
+        );
+
+        newPostsToday += dayPosts.filter(
+          (p) => !existingKeys.has(getPostKey(p)),
+        ).length;
+      }
+
       await SocialAllDump.updateOne(
         {
           _id: existing._id,
@@ -281,14 +451,12 @@ export async function savePlatformData({ creatorName, platform, posts }) {
         )
       : null;
 
-  await SocialDumpStore.findOneAndUpdate(
+  await SocialDumpStore.updateOne(
     {
-      creatorName: "__system__",
+      creatorName,
     },
     {
       $set: {
-        creatorName: "__system__",
-
         [`platformState.${platform}.bootstrapCompleted`]: true,
 
         [`platformState.${platform}.lastScrapedAt`]: new Date(),
@@ -300,6 +468,10 @@ export async function savePlatformData({ creatorName, platform, posts }) {
       upsert: true,
     },
   );
+
+  // Adaptive per-creator scrape frequency: only "today's" newly discovered
+  // posts count towards the threshold (backfilled/older days are ignored).
+  await trackScrapeFrequency(creatorName, newPostsToday);
 }
 
 export const blockResources = async (page) => {

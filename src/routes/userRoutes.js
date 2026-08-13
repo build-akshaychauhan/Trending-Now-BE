@@ -12,6 +12,9 @@ import {
   addFavouriteCreator,
   removeFavouriteCreator,
   getFavouriteCreators,
+  addBookmarkPost,
+  removeBookmarkPost,
+  getBookmarkPost,
 } from "../controllers/userprofileControls.js";
 
 import { authMiddleware } from "../middleware/authVerify.js";
@@ -39,5 +42,11 @@ router.post("/favorite-creators", authMiddleware, addFavouriteCreator);
 router.delete("/favorite-creators", authMiddleware, removeFavouriteCreator);
 
 router.get("/favorite-creators", authMiddleware, getFavouriteCreators);
+
+router.post("/bookmark", authMiddleware, addBookmarkPost);
+
+router.get("/bookmark", authMiddleware, getBookmarkPost);
+
+router.delete("/bookmark/:postId", authMiddleware, removeBookmarkPost);
 
 export default router;

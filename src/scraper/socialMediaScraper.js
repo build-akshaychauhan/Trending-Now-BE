@@ -10,13 +10,14 @@ import {
 import {
   blockResources,
   createCreatorCache,
-  CREATOR_LOOKUP,
+  getCreatorLookup,
   extractMedia,
+  getBoostedCreatorNames,
   getLatestYoutubeVideo,
   getMatchedCreators,
   getPlatformScrapeConfig,
   getYoutubeChannelInfo,
-  keywords,
+  getTwitterKeywords,
   savePlatformData,
   sleep,
   toUsername,
@@ -107,6 +108,7 @@ export function processItems({
   matchedPosts,
   creatorLookup,
   rangeDate,
+  creatorCutoffs,
   username,
 }) {
   let scannedCount = 0;
@@ -147,7 +149,15 @@ export function processItems({
           ),
         ),
       )
-      .map((creator) => creator.name);
+      .map((creator) => creator.name)
+      // Each creator has its own cutoff (90 days if newly added & not yet
+      // bootstrapped, 1 day otherwise) — don't let an already-bootstrapped
+      // creator get flooded with old backlog just because this same crawl
+      // had to go back further for a sibling creator.
+      .filter((name) => {
+        const cutoff = creatorCutoffs?.get(name);
+        return !cutoff || postDate >= cutoff;
+      });
 
     if (!matchedCreators.length) {
       continue;
@@ -288,6 +298,7 @@ export async function scrapeInstagramAccount({
   username,
   creatorLookup,
   rangeDate,
+  creatorCutoffs,
 }) {
   const scannedIds = new Set();
 
@@ -335,6 +346,7 @@ export async function scrapeInstagramAccount({
       matchedPosts,
       creatorLookup,
       rangeDate,
+      creatorCutoffs,
       username,
     });
 
@@ -386,7 +398,7 @@ export async function scrapeInstagramAccount({
   };
 }
 
-export const InstagramPosts = async () => {
+export const InstagramPosts = async ({ onlyCreators = null } = {}) => {
   try {
     // Reset cache for every fresh scrape
     resetCreatorCache();
@@ -400,6 +412,15 @@ export const InstagramPosts = async () => {
       };
     }
 
+    // When running a targeted "boost" scrape for a subset of creators,
+    // only match against those creators' keywords so unrelated creators
+    // aren't touched by this extra run.
+    const allCreatorLookup = getCreatorLookup();
+    const creatorLookup =
+      Array.isArray(onlyCreators) && onlyCreators.length
+        ? allCreatorLookup.filter((c) => onlyCreators.includes(c.name))
+        : allCreatorLookup;
+
     // ----------------------------------------------------
     // LAST 3 MONTHS
     // ----------------------------------------------------
@@ -412,7 +433,10 @@ export const InstagramPosts = async () => {
 
     const BATCH_SIZE = 2;
 
-    const instagramConfig = await getPlatformScrapeConfig("instagram");
+    const instagramConfig = await getPlatformScrapeConfig(
+      "instagram",
+      creatorLookup.map((c) => c.name),
+    );
 
     for (let i = 0; i < accounts.length; i += BATCH_SIZE) {
       const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
@@ -429,8 +453,9 @@ export const InstagramPosts = async () => {
         batch.map(async (account) => {
           return scrapeInstagramAccount({
             username: account.username,
-            creatorLookup: CREATOR_LOOKUP,
+            creatorLookup,
             rangeDate: instagramConfig.rangeDate,
+            creatorCutoffs: instagramConfig.creatorCutoffs,
           });
         }),
       );
@@ -461,6 +486,14 @@ export const InstagramPosts = async () => {
     }));
 
     for (const creator of creatorResults) {
+      if (
+        Array.isArray(onlyCreators) &&
+        onlyCreators.length &&
+        !onlyCreators.includes(creator.creator)
+      ) {
+        continue;
+      }
+
       await savePlatformData({
         creatorName: creator.creator,
         platform: "instagram",
@@ -500,16 +533,40 @@ export const InstagramPosts = async () => {
 
 // ─── Twitter: posts ────────────────────────────────────────────────
 
-export const TwitterPosts = async () => {
+export const TwitterPosts = async ({ onlyCreators = null } = {}) => {
   try {
     const uniqueIds = new Set();
     const posts = [];
 
-    const twitterConfig = await getPlatformScrapeConfig("twitter");
+    const isBoostRun = Array.isArray(onlyCreators) && onlyCreators.length;
+
+    // Targeted boost run -> only search keywords/match against the
+    // boosted creators so unrelated creators aren't touched.
+    const fullCreatorLookup = getCreatorLookup();
+    const creatorLookup = isBoostRun
+      ? fullCreatorLookup.filter((c) => onlyCreators.includes(c.name))
+      : fullCreatorLookup;
+
+    const twitterConfig = await getPlatformScrapeConfig(
+      "twitter",
+      creatorLookup.map((c) => c.name),
+    );
 
     const rangeDate = twitterConfig.rangeDate;
 
-    for (const keyword of keywords) {
+    const creatorCutoffs = twitterConfig.creatorCutoffs;
+
+    const searchKeywords = isBoostRun
+      ? [
+          ...new Set(
+            CREATOR_NAMES.filter((c) => onlyCreators.includes(c.name)).flatMap(
+              (c) => c.twitterKeyword || [],
+            ),
+          ),
+        ].map((k) => encodeURIComponent(k))
+      : getTwitterKeywords();
+
+    for (const keyword of searchKeywords) {
       try {
         console.log(`Searching: ${keyword}`);
 
@@ -563,7 +620,15 @@ export const TwitterPosts = async () => {
             continue;
           }
 
-          const matchedCreators = getMatchedCreators(tweet.text || "");
+          const tweetDate = new Date(tweet.created_at);
+
+          const matchedCreators = getMatchedCreators(
+            tweet.text || "",
+            creatorLookup,
+          ).filter((name) => {
+            const cutoff = creatorCutoffs?.get(name);
+            return !cutoff || tweetDate >= cutoff;
+          });
 
           if (!matchedCreators.length) {
             continue;
@@ -628,7 +693,11 @@ export const TwitterPosts = async () => {
 
     const creatorResults = {};
 
-    for (const creator of CREATOR_NAMES) {
+    const relevantCreators = isBoostRun
+      ? CREATOR_NAMES.filter((c) => onlyCreators.includes(c.name))
+      : CREATOR_NAMES;
+
+    for (const creator of relevantCreators) {
       creatorResults[creator.name] = {
         creator: creator.name,
         channelName: creator.channelName,
@@ -658,9 +727,9 @@ export const TwitterPosts = async () => {
 
     return {
       success: true,
-      keywordsProcessed: keywords.length,
+      keywordsProcessed: searchKeywords.length,
       totalMatches: posts.length,
-      totalCreators: CREATOR_NAMES.length,
+      totalCreators: relevantCreators.length,
       data: creatorArray,
     };
   } catch (error) {
@@ -669,6 +738,56 @@ export const TwitterPosts = async () => {
     return {
       success: false,
       error: error.message,
+    };
+  }
+};
+
+// ─── ADAPTIVE BOOST SCRAPE: extra 3rd run for creators over threshold ────────
+//
+// Runs on top of the normal 2x/day schedule. Only touches creators whose
+// SocialDumpStore.scrapeFrequency.timesPerDay === 3 (set automatically by
+// trackScrapeFrequency() inside savePlatformData whenever a creator hits
+// SCRAPE_THRESHOLD_POSTS new posts in a day). If no creator is currently
+// boosted, this is a cheap no-op.
+export const runBoostScrape = async () => {
+  try {
+    const boostedCreators = await getBoostedCreatorNames();
+
+    if (!boostedCreators.length) {
+      console.log("Boost scrape: no creators currently boosted, skipping.");
+
+      return {
+        success: true,
+        skipped: true,
+        boostedCreators: [],
+      };
+    }
+
+    console.log("Boost scrape running for:", boostedCreators);
+
+    const [instagramResult, twitterResult] = await Promise.allSettled([
+      InstagramPosts({ onlyCreators: boostedCreators }),
+      TwitterPosts({ onlyCreators: boostedCreators }),
+    ]);
+
+    return {
+      success: true,
+      boostedCreators,
+      instagram:
+        instagramResult.status === "fulfilled"
+          ? instagramResult.value
+          : { success: false, error: instagramResult.reason?.message },
+      twitter:
+        twitterResult.status === "fulfilled"
+          ? twitterResult.value
+          : { success: false, error: twitterResult.reason?.message },
+    };
+  } catch (err) {
+    console.log("Boost scrape failed", err);
+
+    return {
+      success: false,
+      error: err.message,
     };
   }
 };
@@ -731,6 +850,7 @@ export const YoutubeShorts = async () => {
   // const { channels } = req.body;
 
   const channels = YT_CHANNELS;
+  const fullCreatorLookup = getCreatorLookup();
 
   resetCreatorCache();
 
@@ -747,6 +867,8 @@ export const YoutubeShorts = async () => {
     const config = await getPlatformScrapeConfig("youtubeShorts");
 
     const fromDate = config.rangeDate;
+
+    const creatorCutoffs = config.creatorCutoffs;
 
     console.log(
       `Filtering Shorts from ${fromDate.toISOString()} to ${toDate.toISOString()}`,
@@ -822,7 +944,7 @@ export const YoutubeShorts = async () => {
 
             if (!caption) return false;
 
-            return CREATOR_LOOKUP.some((creator) =>
+            return fullCreatorLookup.some((creator) =>
               creator.allKeywords.some((keyword) => caption.includes(keyword)),
             );
           });
@@ -877,11 +999,17 @@ export const YoutubeShorts = async () => {
 
               const caption = (short.caption || "").toLowerCase();
 
-              const matchedCreators = CREATOR_LOOKUP.filter((creator) =>
-                creator.allKeywords.some((keyword) =>
-                  caption.includes(keyword),
-                ),
-              ).map((creator) => creator.name);
+              const matchedCreators = fullCreatorLookup
+                .filter((creator) =>
+                  creator.allKeywords.some((keyword) =>
+                    caption.includes(keyword),
+                  ),
+                )
+                .map((creator) => creator.name)
+                .filter((name) => {
+                  const cutoff = creatorCutoffs?.get(name);
+                  return !cutoff || shortDate >= cutoff;
+                });
 
               if (!matchedCreators.length) {
                 continue;
@@ -1125,8 +1253,9 @@ export async function creatorTrendScoreCalc() {
   try {
     CREATOR_NAMES.map(async (f) => {
       let score = 0;
+      let badge = null;
 
-      const [articlesCount, socialPostsCount] = await Promise.all([
+      const [articlesCount, socialPostsCount, prevScore] = await Promise.all([
         ArticleStore.countDocuments({
           creatorName: f.name,
         }),
@@ -1145,12 +1274,19 @@ export async function creatorTrendScoreCalc() {
             },
           },
         ]),
+        Creator.findOne({ name: f.name }, { trendingScore: 1 }).lean(),
       ]);
 
       score = score + articlesCount * 10;
       score = score + (socialPostsCount[0]?.instagram || 0) * 6;
       score = score + (socialPostsCount[0]?.twitter || 0) * 8;
       score = score + (socialPostsCount[0]?.youtube || 0) * 4;
+
+      // creators badge logic
+      if (prevScore > 0 && score >= 0) {
+        const delta = Math.abs(prevScore - score);
+        badge = prevScore < score && delta >= 10 ? "Rising Creator" : null;
+      }
 
       const instaUrl =
         f?.instagram?.length > 0
@@ -1179,6 +1315,7 @@ export async function creatorTrendScoreCalc() {
             youtube: youtubeUrl,
           },
           trendingScore: score,
+          badge: badge,
         },
         {
           upsert: true,
@@ -1186,6 +1323,23 @@ export async function creatorTrendScoreCalc() {
         },
       );
     });
+
+    const top3Creators = await Creator.find(
+      {},
+      { name: 1, trendingScore: 1, badge: 1 },
+    )
+      .sort({ trendingScore: -1 })
+      .limit(3)
+      .lean();
+
+    await Creator.bulkWrite(
+      top3Creators.map((creator) => ({
+        updateOne: {
+          filter: { _id: creator._id },
+          update: { $set: { badge: "Top Creator" } },
+        },
+      })),
+    );
   } catch (err) {
     console.log("Creators ScoreCalc failed", err);
     throw err;

@@ -69,6 +69,24 @@ const UserSchema = new mongoose.Schema(
       },
     ],
 
+    bookmarkPosts: [
+      {
+        postId: {
+          type: String,
+          required: true,
+        },
+        model: {
+          type: String,
+          required: true,
+          enum: ["news", "instagram", "twitter", "youtube_shorts"],
+        },
+        socialDumpId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "SocialAllDump",
+        },
+      },
+    ],
+
     // bio: {
     //   type: String,
     //   maxlength: 250,
