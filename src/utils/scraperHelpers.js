@@ -312,13 +312,36 @@ export async function getPlatformScrapeConfig(
     const state = stateByCreator.get(name);
     const needsBootstrap = !state?.bootstrapCompleted;
 
-    creatorCutoffs.set(name, needsBootstrap ? bootstrapCutoff : normalCutoff);
+    const cutoff = needsBootstrap ? bootstrapCutoff : normalCutoff;
+
+    creatorCutoffs.set(name, cutoff);
+
+    // Log the resolved date range per creator so it's clear from the logs
+    // whether a creator got the 90-day bootstrap pull or the normal 1-day
+    // lookback, and why (no dumpstore doc yet vs bootstrapCompleted=false
+    // vs already bootstrapped).
+    const reason = !state
+      ? "no dumpstore doc yet"
+      : !state.bootstrapCompleted
+        ? "bootstrapCompleted=false"
+        : "bootstrapCompleted=true";
+
+    console.log(
+      `[scrapeConfig] platform=${platform} creator=${name} ` +
+        `range=${needsBootstrap ? `${BOOTSTRAP_RANGE_DAYS}d` : "1d"} ` +
+        `since=${cutoff.toISOString()} reason="${reason}"`,
+    );
 
     if (needsBootstrap) {
       isBootstrap = true;
       rangeDate = bootstrapCutoff;
     }
   }
+
+  console.log(
+    `[scrapeConfig] platform=${platform} overall isBootstrap=${isBootstrap} ` +
+      `widestRangeDate=${rangeDate.toISOString()} creators=${creatorNames.length}`,
+  );
 
   return {
     isBootstrap,
