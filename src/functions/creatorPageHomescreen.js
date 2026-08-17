@@ -152,67 +152,71 @@ export const creatorFeedHomescreen = async (req, res) => {
       ),
     ];
 
-    if (favoriteGenreIds.length > 0) {
-      const genreCreators = await Genre.find({
-        _id: { $in: favoriteGenreIds },
-      })
-        .populate("creatorsList")
-        .lean();
+    const genreCreators = await Genre.find({
+      _id: { $in: favoriteGenreIds },
+    })
+      .populate("creatorsList")
+      .lean();
 
-      // Flatten creators from all genres
-      const creatorlist = genreCreators.flatMap((genre) => genre?.creatorsList);
+    // Flatten creators from all genres
+    const creatorlist = genreCreators.flatMap((genre) => genre?.creatorsList);
 
-      // Create Set of favorite creator IDs
-      const favoriteCreatorIds = new Set(
-        favInfluencersList.map((creator) => creator._id?.toString()),
-      );
+    // Create Set of favorite creator IDs
+    const favoriteCreatorIds = new Set(
+      favInfluencersList.map((creator) => creator._id?.toString()),
+    );
 
-      // Remove already-favorited creators
-      const unfavoritedgenreCreators = creatorlist.filter(
-        (creator) => !favoriteCreatorIds.has(creator._id?.toString()),
-      );
+    // Remove already-favorited creators
+    const unfavoritedgenreCreators = creatorlist.filter(
+      (creator) => !favoriteCreatorIds.has(creator._id?.toString()),
+    );
 
-      const suggestedInfluencers =
-        unfavoritedgenreCreators.length > 0
-          ? unfavoritedgenreCreators
-          : influencersList;
+    const suggestedInfluencers =
+      unfavoritedgenreCreators.length > 0
+        ? unfavoritedgenreCreators
+        : influencersList;
 
-      for (const creator of suggestedInfluencers) {
-        if (creator.badge && creator.badge !== null) {
-          const genreCreatorName =
-            favInfluencersList.length > 0
-              ? favInfluencersList
-                  .filter((c) =>
+    for (const creator of suggestedInfluencers) {
+      if (creator.badge && creator.badge !== null) {
+        const genreCreatorName =
+          favInfluencersList.length > 0
+            ? favInfluencersList
+                .filter((c) =>
+                  c.genres?.some((g) =>
+                    creator.genres?.some(
+                      (cg) => g._id.toString() === cg._id.toString(),
+                    ),
+                  ),
+                )
+                .slice(0, 1)
+                .map((c) => c.name)
+                .join(", ")
+            : influencersList
+                .filter(
+                  (c) =>
+                    c._id?.toString() !== creator._id?.toString() &&
+                    c.name !== creator.name &&
                     c.genres?.some((g) =>
                       creator.genres?.some(
                         (cg) => g._id.toString() === cg._id.toString(),
                       ),
                     ),
-                  )
-                  .slice(0, 1)
-                  .map((c) => c.name)
-                  .join(", ")
-              : influencersList
-                  .filter(
-                    (c) =>
-                      c._id?.toString() !== creator._id?.toString() &&
-                      c.name !== creator.name &&
-                      c.genres?.some((g) =>
-                        creator.genres?.some(
-                          (cg) => g._id.toString() === cg._id.toString(),
-                        ),
-                      ),
-                  )
-                  .slice(0, 1)
-                  .map((c) => c.name)[0];
+                )
+                .slice(0, 1)
+                .map((c) => c.name)[0];
 
-          const creatorMeta = {
-            CreatorName: creator.name,
-            badge: creator.badge,
-            role: creator.role,
-            suggestionline: `Loved by +2.5K fans of ${genreCreatorName}`,
-            suggestionImage: creator.suggestionImage,
-          };
+        const creatorMeta = {
+          CreatorName: creator.name,
+          badge: creator.badge,
+          role: creator.role,
+          suggestionline: `Loved by +2.5K fans of ${genreCreatorName}`,
+          suggestionImage: creator.suggestionImage,
+        };
+        if (
+          !creatorSuggestions.some(
+            (item) => item.CreatorName === creatorMeta.CreatorName,
+          )
+        ) {
           creatorSuggestions.push(creatorMeta);
         }
       }
