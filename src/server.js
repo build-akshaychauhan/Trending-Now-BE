@@ -12,7 +12,10 @@ import userRoutes from "./routes/userRoutes.js";
 import normalizeCreator from "./routes/normalizeCreator.js";
 import { scrapingConstantsCache } from "./functions/scrapingConstantsCache.js";
 import { syncNewsFeed } from "./scraper/newsFetcher.js";
-import { syncInstagramMedia } from "./utils/mediaCDNWorker.js";
+import {
+  syncInstagramMedia,
+  cleanupOldInstagramMedia,
+} from "./utils/mediaCDNWorker.js";
 import {
   creatorTrendScoreCalc,
   InstagramPosts,
@@ -253,12 +256,34 @@ const runEveryFridayAt7AM = () => {
   }, initialDelay);
 };
 
+// ----------- Instagram Media Cleanup Scheduler (once every 24h) --------------
+//
+// Locally-cached Instagram media (saved under public/cdn/instagram by
+// mediaCDNWorker.js) older than 90 days is deleted from disk here. This does
+// NOT touch public/cdn/images, which belongs to the separate CDN image
+// gallery feature (src/controllers/cdnControls.js).
+
+const runMediaCleanupDaily = () => {
+  const executeCleanupJob = async () => {
+    try {
+      await cleanupOldInstagramMedia();
+    } catch (error) {
+      console.error("cleanupOldInstagramMedia error:", error);
+    }
+  };
+
+  executeCleanupJob();
+
+  setInterval(executeCleanupJob, 24 * 60 * 60 * 1000);
+};
+
 // ----------- function calls --------------
 
 await scrapingConstantsCache(CACHING_KEYS.ScrapingConstantsKey);
 // runDailyAt7AM();
 // runBoostScrapeDaily();
 // runEveryFridayAt7AM();
+// runMediaCleanupDaily();
 
 // ------Testing calls-------
 // await syncNewsFeed();

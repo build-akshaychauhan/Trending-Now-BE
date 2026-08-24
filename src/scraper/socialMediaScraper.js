@@ -171,8 +171,8 @@ export function processItems({
         type: "video",
         url: item.video_versions[0].url,
         poster: item.image_versions2?.candidates?.[0]?.url || null,
-        firebaseUrl: null,
-        firebasePoster: null,
+        cdnUrl: null,
+        cdnPoster: null,
         uploadedAt: null,
       });
     }
@@ -188,8 +188,8 @@ export function processItems({
           type: videoUrl ? "video" : "image",
           url: videoUrl || imageUrl,
           poster: imageUrl || null,
-          firebaseUrl: null,
-          firebasePoster: null,
+          cdnUrl: null,
+          cdnPoster: null,
           uploadedAt: null,
         });
       }
@@ -203,7 +203,7 @@ export function processItems({
         media.push({
           type: "image",
           url: imageUrl,
-          firebaseUrl: null,
+          cdnUrl: null,
           uploadedAt: null,
         });
       }

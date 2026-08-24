@@ -60,8 +60,8 @@ const cleanMedia = (mediaArr) => {
   return mediaArr
     .map((m) => ({
       ...m,
-      url: (m.firebaseUrl || m.url)?.trim(),
-      poster: m.firebasePoster || m.poster || null,
+      url: (m.cdnUrl || m.url)?.trim(),
+      poster: m.cdnPoster || m.poster || null,
     }))
     .filter((m) => m && m.url)
     .filter((m) => {
