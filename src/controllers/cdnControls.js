@@ -50,7 +50,7 @@ export const uploadCdnImage = async (req, res) => {
     const stats = await fs.stat(outputPath);
 
     const baseUrl =
-      process.env.PUBLIC_URL || `${req.protocol}://${req.get("host")}`;
+      `${req.protocol}://${req.get("host")}` || process.env.PUBLIC_URL;
 
     const imageUrl = `${baseUrl}/cdn/images/${filename}`;
 

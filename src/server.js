@@ -54,7 +54,7 @@ app.use("/admin/cdn", cdnRoutes);
 app.use("/api/feed", feedRoutes);
 app.use("/api/genre", genre);
 app.use("/api/user", userRoutes);
-app.use("/api/user-favourite", userCreatorScreen);
+app.use("/api/creator-screen-feed", userCreatorScreen);
 app.use("/api/rank", creatorsRank);
 app.use("/api/creator", normalizeCreator);
 
