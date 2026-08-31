@@ -239,7 +239,9 @@ export const creatorFeedHomescreen = async (req, res) => {
       }
     }
 
-    topPosts = topPosts
+    topPosts = Array.from(
+      new Map(topPosts.map((post) => [post.postId, post])).values(),
+    )
       .sort(byLatest)
       .sort((a, b) => getScore(b) - getScore(a))
       .slice(0, 20);

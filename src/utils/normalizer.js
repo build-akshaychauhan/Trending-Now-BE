@@ -60,8 +60,8 @@ const cleanMedia = (mediaArr) => {
   return mediaArr
     .map((m) => ({
       ...m,
-      url: (m.cdnUrl || m.url)?.trim(),
-      poster: m.cdnPoster || m.poster || null,
+      url: (m?.firebaseUrl || m.cdnUrl || m.url)?.trim(),
+      poster: m?.firebasePoster || m.cdnPoster || m.poster || null,
     }))
     .filter((m) => m && m.url)
     .filter((m) => {
@@ -1119,9 +1119,19 @@ export function normaliseFavoriteCreator(creatorConfig = {}, rawDocs = []) {
       ),
     );
 
-  let instagram = normaliseInstagram(dedupeByKey(merged.instagram, "postId"));
+  let instagram = normaliseInstagram(
+    dedupeByKey(merged.instagram, "postId"),
+  ).map((post) => ({
+    ...post,
+    creator: merged.creatorName,
+  }));
 
-  let twitter = normaliseTwitter(dedupeByKey(merged.twitter, "tweetId"));
+  let twitter = normaliseTwitter(dedupeByKey(merged.twitter, "tweetId")).map(
+    (post) => ({
+      ...post,
+      creator: merged.creatorName,
+    }),
+  );
 
   let allPosts = [...instagram, ...twitter];
 
