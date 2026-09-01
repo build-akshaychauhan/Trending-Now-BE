@@ -14,7 +14,7 @@ const MEDIA_ROOT = path.join(process.cwd(), "public", "cdn", "instagram");
 const MEDIA_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 
 const getPublicBaseUrl = () =>
-  `${req.protocol}://${req.get("host")}` || process.env.PUBLIC_URL;
+  `https://${req.get("host")}` || process.env.PUBLIC_URL;
 
 let mediaSyncRunning = false;
 let mediaCleanupRunning = false;

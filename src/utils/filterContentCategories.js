@@ -3,6 +3,7 @@ import {
   HANDLES,
   NEWS_KEYWORDS,
 } from "../constants/keywords.js";
+import Creator from "../models/Creator.js";
 
 const NEWS_SOURCES = [
   "aajtak",
@@ -456,8 +457,23 @@ export const postMatchesTopic = (post, slug) => {
   return false;
 };
 
-export const extractTopics = (creatorName, posts = []) => {
+export const extractTopics = async (creatorName, posts = []) => {
   const freq = {};
+
+  const CreatorNames = (
+    await Creator.find({}, { name: 1, _id: 0 }).lean()
+  ).flatMap((creator) => {
+    const name = creator.name.toLowerCase().replace(/^@/, "").trim();
+
+    const words = name.split("_").filter(Boolean);
+
+    return [
+      ...words, // john, doe
+      words.join(" "), // john doe
+      words.join(""), // johndoe
+      words.join("_"), // john_doe
+    ];
+  });
 
   posts.forEach((post) => {
     const creator = creatorName
@@ -487,6 +503,7 @@ export const extractTopics = (creatorName, posts = []) => {
         creatorLastName,
         ...creatorHandles,
         ...blockedWords,
+        ...CreatorNames,
       ]
         .filter(Boolean)
         .map((v) => v.toLowerCase().replace(/^@/, "").trim()),
@@ -499,9 +516,7 @@ export const extractTopics = (creatorName, posts = []) => {
 
       const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-      text = text
-        .replace(new RegExp(`@${escaped}`, "gi"), "")
-        .replace(new RegExp(`\\b${escaped}\\b`, "gi"), "");
+      text = text.replace(new RegExp(escaped, "gi"), "");
     });
 
     const postTopics = new Map();
@@ -532,6 +547,19 @@ export const extractTopics = (creatorName, posts = []) => {
     if (Array.isArray(post.hashtags)) {
       post.hashtags.forEach((tag) => {
         const clean = String(tag).replace(/^#/, "").toLowerCase().trim();
+
+        if (clean && clean.length > 0) {
+          const isBlocked = [...blockedTerms].some(
+            (term) => term && clean.includes(String(term).toLowerCase().trim()),
+          );
+
+          if (isBlocked) {
+            // skip / remove this hashtag
+            return;
+          }
+
+          // process clean hashtag here
+        }
 
         if (clean && clean.length > 4) {
           addPostTopic(clean, `#${clean}`, true);
@@ -593,10 +621,10 @@ export const extractTopics = (creatorName, posts = []) => {
   return posts;
 };
 
-export const addTopicsToPosts = (creatorName, posts = []) => {
+export const addTopicsToPosts = async (creatorName, posts = []) => {
   if (!Array.isArray(posts) || posts.length === 0) {
     return [];
   }
 
-  return extractTopics(creatorName, posts);
+  return await extractTopics(creatorName, posts);
 };

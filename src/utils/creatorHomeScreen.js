@@ -53,7 +53,7 @@ export async function BuzzingData(creator) {
     };
   }
 
-  const data = normaliseCreator(creatorConfig, rawDoc, newsDoc);
+  const data = await normaliseCreator(creatorConfig, rawDoc, newsDoc);
 
   const allposts = collectPosts(data);
 

@@ -31,7 +31,7 @@ export async function authHomeFeed(creator) {
     };
   }
 
-  const data = normaliseCreator(creatorConfig, rawDoc, newsDoc);
+  const data = await normaliseCreator(creatorConfig, rawDoc, newsDoc);
 
   const allposts = collectPosts(data);
 

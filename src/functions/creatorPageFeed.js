@@ -40,7 +40,7 @@ export async function creatorPageFeed(key, creatorName, forceRefresh = false) {
       };
     }
 
-    const data = normaliseCreator(creatorConfig, rawDoc, newsDoc);
+    const data = await normaliseCreator(creatorConfig, rawDoc, newsDoc);
 
     // caching updated data
     cache.set(key, data);

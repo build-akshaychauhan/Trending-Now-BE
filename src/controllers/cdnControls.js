@@ -49,8 +49,7 @@ export const uploadCdnImage = async (req, res) => {
     // Get compressed file size
     const stats = await fs.stat(outputPath);
 
-    const baseUrl =
-      `${req.protocol}://${req.get("host")}` || process.env.PUBLIC_URL;
+    const baseUrl = `https://${req.get("host")}` || process.env.PUBLIC_URL;
 
     const imageUrl = `${baseUrl}/cdn/images/${filename}`;
 

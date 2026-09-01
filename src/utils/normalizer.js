@@ -72,8 +72,7 @@ const cleanMedia = (mediaArr) => {
     .map((m) => ({
       type: safe(m.type, "image"),
       url: m.url,
-      thumbnail: m.thumbnail || null,
-      poster: m.poster,
+      poster: m?.poster || m?.thumbnail || null,
     }));
 };
 
@@ -922,7 +921,7 @@ export const byLatest = (a, b) => getTimestamp(b) - getTimestamp(a);
 
 // ─── Main Normaliser ────────────────────────────────────────────────────────
 
-export function normaliseCreator(
+export async function normaliseCreator(
   creatorConfig = {},
   rawDocs = [],
   newsDocs = [],
@@ -978,7 +977,7 @@ export function normaliseCreator(
     post.category = getCategory(post);
   }
   // assign topics then
-  allPosts = addTopicsToPosts(merged.creatorName, allPosts);
+  allPosts = await addTopicsToPosts(merged.creatorName, allPosts);
   // console.log(allPosts.filter((f) => !f.topic));
   instagram = allPosts.filter((f) => f.platform == "instagram");
 
