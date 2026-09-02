@@ -280,10 +280,10 @@ const runMediaCleanupDaily = () => {
 // ----------- function calls --------------
 
 await scrapingConstantsCache(CACHING_KEYS.ScrapingConstantsKey);
-// runDailyAt7AM();
-// runBoostScrapeDaily();
-// runEveryFridayAt7AM();
-// runMediaCleanupDaily();
+runDailyAt7AM();
+runBoostScrapeDaily();
+runEveryFridayAt7AM();
+runMediaCleanupDaily();
 
 // ------Testing calls-------
 // await syncNewsFeed();

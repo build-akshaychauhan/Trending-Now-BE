@@ -276,12 +276,12 @@ export async function fetchInstagramPosts(username, maxId = null) {
   if (maxId) {
     body.maxId = maxId;
   }
-  const url = "https://instagram120.p.rapidapi.com/api/instagram/posts";
+  const url = "https://ig-downloader-api.p.rapidapi.com/api/instagram/posts";
 
   const response = await rapidApiFetch(url, {
     method: "POST",
     headers: {
-      "x-rapidapi-host": "instagram120.p.rapidapi.com",
+      "x-rapidapi-host": "ig-downloader-api.p.rapidapi.com",
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -1164,11 +1164,11 @@ export async function syncCreatorFollowers() {
         if (instagramHandle) {
           try {
             const response = await rapidApiFetch(
-              "https://instagram120.p.rapidapi.com/api/instagram/userInfo",
+              "https://ig-downloader-api.p.rapidapi.com/api/instagram/userInfo",
               {
                 method: "POST",
                 headers: {
-                  "x-rapidapi-host": "instagram120.p.rapidapi.com",
+                  "x-rapidapi-host": "ig-downloader-api.p.rapidapi.com",
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
