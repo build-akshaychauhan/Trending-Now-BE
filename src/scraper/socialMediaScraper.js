@@ -1308,6 +1308,7 @@ export async function creatorTrendScoreCalc() {
           role: f.role,
           accentColor: f.accentColor,
           image: f.image,
+          bannerImage: f.bannerImage,
           cardImage: f.cardImage,
           suggestionImage: f.suggestionImage,
           socialAccounts: {
