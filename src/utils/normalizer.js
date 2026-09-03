@@ -60,8 +60,8 @@ const cleanMedia = (mediaArr) => {
   return mediaArr
     .map((m) => ({
       ...m,
-      url: (m?.firebaseUrl || m.cdnUrl || m.url)?.trim(),
-      poster: m?.firebasePoster || m.cdnPoster || m.poster || null,
+      url: (m?.firebaseUrl || m?.cdnUrl || m?.url)?.trim(),
+      poster: m?.firebasePoster || m?.cdnPoster || m?.poster || null,
     }))
     .filter((m) => m && m.url)
     .filter((m) => {
@@ -69,11 +69,16 @@ const cleanMedia = (mediaArr) => {
       seen.add(m.url);
       return true;
     })
-    .map((m) => ({
-      type: safe(m.type, "image"),
-      url: m.url,
-      poster: m?.poster || m?.thumbnail || null,
-    }));
+    .map((m) => {
+      const type = ["image", "photo"].includes(m?.type) ? "image" : "video";
+
+      return {
+        type,
+        imageUrl: type === "image" ? m.url : null,
+        videoUrl: type === "video" ? m.url : null,
+        posterUrl: type === "video" ? m?.poster || m?.thumbnail || null : null,
+      };
+    });
 };
 
 // Extract YouTube video ID from a URL for embedding

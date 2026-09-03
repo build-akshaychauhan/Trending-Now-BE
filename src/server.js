@@ -163,7 +163,7 @@ const runDailyAt7AM = () => {
     const executeJob = async () => {
       try {
         await syncNewsFeed();
-        // await YoutubeShorts();
+        await YoutubeShorts();
         await InstagramPosts();
         await TwitterPosts();
         await creatorTrendScoreCalc();
