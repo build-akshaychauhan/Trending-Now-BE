@@ -22,6 +22,7 @@ const CreatorSchema = new mongoose.Schema(
 
     accentColor: { type: String },
     image: { type: String },
+    bannerImage: { type: String },
     cardImage: { type: String },
     suggestionImage: { type: String },
 

@@ -1,3 +1,4 @@
+import Creator from "../models/Creator.js";
 import { addTopicsToPosts, getCategory } from "./filterContentCategories.js";
 
 // ─── Categorisation ─────────────────────────────────────────────────────────
@@ -935,6 +936,10 @@ export async function normaliseCreator(
     return null;
   }
 
+  const creatorData = await Creator.findOne({
+    name: creatorConfig?.creatorName,
+  }).lean();
+
   // Merge all social documents
   const merged = {
     creatorName: creatorConfig?.creatorName,
@@ -1069,6 +1074,8 @@ export async function normaliseCreator(
 
   return {
     creatorName: safe(merged.creatorName),
+    role: creatorData?.role,
+    bannerImage: creatorData?.bannerImage,
     socialFollows: merged.socialFollows,
     createdAt: safeDate(merged.createdAt),
     updatedAt: safeDate(merged.updatedAt),
