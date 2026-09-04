@@ -19,6 +19,7 @@ import {
   upsertAppLayout,
 } from "../controllers/adminControls.js";
 import Creator from "../models/Creator.js";
+import { allFeedbackReports } from "../functions/feedbackReports.js";
 
 const router = express.Router();
 
@@ -46,5 +47,8 @@ router.get("/screen/:appScreen", getAppLayout);
 router.post("/card", upsertAppCard);
 router.get("/card", getAllAppCard);
 router.get("/card/:appCard", getAppCard);
+
+// Reports list
+router.get("/allReports", allFeedbackReports);
 
 export default router;

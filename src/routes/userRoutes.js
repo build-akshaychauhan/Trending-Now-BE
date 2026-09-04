@@ -18,6 +18,8 @@ import {
 } from "../controllers/userprofileControls.js";
 
 import { authMiddleware } from "../middleware/authVerify.js";
+import { createReport } from "../functions/feedbackReports.js";
+import { uploadImage } from "../middleware/cdnUpload.js";
 
 const router = express.Router();
 
@@ -48,5 +50,7 @@ router.post("/bookmark", authMiddleware, addBookmarkPost);
 router.get("/bookmark", authMiddleware, getBookmarkPost);
 
 router.delete("/bookmark/:postId", authMiddleware, removeBookmarkPost);
+
+router.post("/addReport", uploadImage.single("feedbackImage"), createReport);
 
 export default router;
